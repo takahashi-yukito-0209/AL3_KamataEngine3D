@@ -61,7 +61,6 @@ void GameScene::Update() {
 		// 音声停止
 		Audio::GetInstance()->StopWave(voiceHandle_);
 	}
-
 	
 #ifdef _DEBUG
 	ImGui::Begin("Debug1");
