@@ -3,43 +3,42 @@
 using namespace KamataEngine;
 
 void GameScene::Initialize() {
-	//�t�@�C������w�肵�ăe�N�X�`����ǂݍ���
+	// ファイル名を指定してテクスチャを読み込む
 	textureHandle_ = TextureManager::Load("sample.png");
 
-	//3D���f���̐���
+	// 3Dモデルの生成
 	model_ = Model::Create();
 
-	//���[���h�g�����X�t�H�[���̏�����
+	// ワールドトランスフォームの初期化
 	worldTransform_.Initialize();
 
-	//�J�����̏�����
+	// カメラの初期化
 	camera_.Initialize();
 
-	//���L�����̐���
+	// 自キャラの生成
 	player_ = new Player();
 
-	//���L�����̏�����
-	player_->Initialize(model_,textureHandle_,&camera_);
-
+	// 自キャラの初期化
+	player_->Initialize(model_, textureHandle_, &camera_);
 }
 
 void GameScene::Update() {
-	//���L�����̍X�V
+	// 自キャラの更新
 	player_->Update();
 }
 
 void GameScene::Draw() {
 
-	//DirectXCommon�C���X�^���X�̎擾
+	// DirectXCommonインスタンスの取得
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
-	//3D���f���`��O����
+	// 3Dモデル描画前処理
 	Model::PreDraw(dxCommon->GetCommandList());
 
-	// ���L�����̕`��
+	// 自キャラの描画
 	player_->Draw();
 
-	//3D���f���`��㏈��
+	// 3Dモデル描画後処理
 	Model::PostDraw();
 }
 
