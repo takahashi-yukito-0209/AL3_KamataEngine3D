@@ -4,7 +4,7 @@
 class Player {
 public:
 	// 初期化
-	void Initialize(KamataEngine::Model* model,uint32_t textureHandle, KamataEngine::Camera* camera);
+	void Initialize(KamataEngine::Model* model, uint32_t textureHandle, KamataEngine::Camera* camera);
 
 	// 更新
 	void Update();
@@ -16,13 +16,12 @@ private:
 	// ワールド変換データ
 	KamataEngine::WorldTransform worldTransform_;
 
-	//モデル
+	// モデル
 	KamataEngine::Model* model_ = nullptr;
 
-	//テクスチャハンドル
+	// テクスチャハンドル
 	uint32_t textureHandle_ = 0u;
 
-	//カメラ
+	// カメラ
 	KamataEngine::Camera* camera_ = nullptr;
-
 };

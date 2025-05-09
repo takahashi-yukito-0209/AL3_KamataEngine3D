@@ -18,13 +18,12 @@ void Player::Initialize(KamataEngine::Model* model, uint32_t textureHandle, Kama
 }
 
 void Player::Update() {
-	//行列を定数バッファに転送
+	// 行列を定数バッファに転送
 	worldTransform_.TransferMatrix();
 }
 
 void Player::Draw() {
 
-	//3Dモデルを描画
-	model_->Draw(worldTransform_, *camera_,textureHandle_);
-
+	// 3Dモデルを描画
+	model_->Draw(worldTransform_, *camera_, textureHandle_);
 }
