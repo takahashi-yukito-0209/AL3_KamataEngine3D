@@ -38,7 +38,7 @@ void GameScene::Initialize() {
 	// キューブの生成
 	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
 		for (uint32_t j = 0; j < kNumBlockHorizontal; j++) {
-			if (i % 2 == 0 && j % 2 == 0) {
+			if ((i + j) % 2 == 1) {
 				worldTransformBlocks_[i][j] = new WorldTransform();
 				worldTransformBlocks_[i][j]->Initialize();
 				worldTransformBlocks_[i][j]->translation_.x = kBlockWidth * j;
