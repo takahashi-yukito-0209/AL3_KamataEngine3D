@@ -50,7 +50,7 @@ void GameScene::Initialize() {
 	}
 
 	// デバックカメラの生成
-	debugCamera_ = new DebugCamera(100, 50);
+	debugCamera_ = new DebugCamera(WinApp::kWindowWidth, WinApp::kWindowHeight);
 }
 
 void GameScene::Update() {
