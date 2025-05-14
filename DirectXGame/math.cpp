@@ -96,4 +96,12 @@ KamataEngine::Matrix4x4 Math::MakeAffineMatrix(const KamataEngine::Vector3& scal
 	Matrix4x4 result = Multiply(Multiply(MakeScaleMatrix(scale), rotateXYZMatrix), MakeTranslateMatrix(translate));
 
 	return result;
+}
+
+// ワールド行列更新関数
+void Math::WorldTransformUpdate(KamataEngine::WorldTransform& worldTransform) {
+	//スケール、回転、平行移動を合成して行列を計算する
+	worldTransform.matWorld_ = MakeAffineMatrix(worldTransform.scale_, worldTransform.rotation_, worldTransform.translation_);
+	//定数バッファに転送
+	worldTransform.TransferMatrix();
 };

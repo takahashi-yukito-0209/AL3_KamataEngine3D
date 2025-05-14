@@ -12,6 +12,9 @@ void GameScene::Initialize() {
 	// ワールドトランスフォームの初期化
 	worldTransform_.Initialize();
 
+	//カメラのfarZを適度に大きい値に変更する
+	camera_.farZ = 1280.0f;
+
 	// カメラの初期化
 	camera_.Initialize();
 
@@ -51,6 +54,15 @@ void GameScene::Initialize() {
 
 	// デバックカメラの生成
 	debugCamera_ = new DebugCamera(WinApp::kWindowWidth, WinApp::kWindowHeight);
+	debugCamera_->SetFarZ(WinApp::kWindowWidth);
+
+	//3Dモデルの生成
+	modelSkydome_ = Model::CreateFromOBJ("skydome", true);
+
+	//天球の生成と初期化
+	skydome_ = new Skydome();
+	skydome_->Initialize(modelSkydome_,&camera_);
+
 }
 
 void GameScene::Update() {
@@ -91,6 +103,9 @@ void GameScene::Update() {
 		// ビュープロジェクション行列の更新と転送
 		camera_.UpdateMatrix();
 	}
+
+	//スカイドームの更新
+	skydome_->Update();
 }
 
 void GameScene::Draw() {
@@ -115,6 +130,9 @@ void GameScene::Draw() {
 		}
 	}
 
+	//スカイドーム描画
+	skydome_->Draw();
+
 	// 3Dモデル描画後処理
 	Model::PostDraw();
 }
@@ -136,4 +154,7 @@ GameScene::~GameScene() {
 
 	// デバックカメラデータ解放
 	delete debugCamera_;
+
+	//3Dモデルデータ解放(Skydome)
+	delete modelSkydome_;
 }

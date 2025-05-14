@@ -1,11 +1,10 @@
 #pragma once
 #include "KamataEngine.h"
 #include "math.h"
-
-class Player {
+class Skydome {
 public:
 	// 初期化
-	void Initialize(KamataEngine::Model* model, uint32_t textureHandle, KamataEngine::Camera* camera);
+	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera);
 
 	// 更新
 	void Update();
@@ -17,7 +16,7 @@ private:
 	// ワールド変換データ
 	KamataEngine::WorldTransform worldTransform_;
 
-	// モデル
+	//モデル
 	KamataEngine::Model* model_ = nullptr;
 
 	// テクスチャハンドル
@@ -28,4 +27,5 @@ private:
 
 	// 自作した数学関数
 	Math math_;
+
 };

@@ -18,6 +18,9 @@ void Player::Initialize(KamataEngine::Model* model, uint32_t textureHandle, Kama
 }
 
 void Player::Update() {
+	//アフィン変換行列を計算してメンバ変数に代入
+	worldTransform_.matWorld_ = math_.MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
+
 	// 行列を定数バッファに転送
 	worldTransform_.TransferMatrix();
 }

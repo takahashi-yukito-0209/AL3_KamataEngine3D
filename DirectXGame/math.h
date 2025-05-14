@@ -25,4 +25,7 @@ public:
 
 	// 3次元アフィン変換行列
 	KamataEngine::Matrix4x4 MakeAffineMatrix(const KamataEngine::Vector3& scale, const KamataEngine::Vector3& rotate, const KamataEngine::Vector3& translate);
+
+	//ワールド行列更新関数
+	void WorldTransformUpdate(KamataEngine::WorldTransform& worldTransform);
 };
