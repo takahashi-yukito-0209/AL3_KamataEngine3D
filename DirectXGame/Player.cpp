@@ -13,6 +13,7 @@ void Player::Initialize(KamataEngine::Model* model, uint32_t textureHandle, Kama
 
 	// ワールド変換の初期化
 	worldTransform_.Initialize();
+	worldTransform_.translation_.z = -5.0f;
 
 	camera_ = camera;
 }
@@ -28,5 +29,5 @@ void Player::Update() {
 void Player::Draw() {
 
 	// 3Dモデルを描画
-	model_->Draw(worldTransform_, *camera_, textureHandle_);
+	model_->Draw(worldTransform_, *camera_);
 }

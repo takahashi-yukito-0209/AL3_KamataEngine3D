@@ -7,62 +7,42 @@ void GameScene::Initialize() {
 	textureHandle_ = TextureManager::Load("sample.png");
 
 	// 3Dモデルの生成
-	model_ = Model::Create();
+	modelBlock_ = Model::CreateFromOBJ("block",true);
 
 	// ワールドトランスフォームの初期化
 	worldTransform_.Initialize();
 
-	//カメラのfarZを適度に大きい値に変更する
+	// カメラのfarZを適度に大きい値に変更する
 	camera_.farZ = 1280.0f;
 
 	// カメラの初期化
 	camera_.Initialize();
 
+	// 自キャラ3Dモデルの生成
+	modelPlayer_ = Model::CreateFromOBJ("player", true);
+
 	// 自キャラの生成
 	player_ = new Player();
 
 	// 自キャラの初期化
-	player_->Initialize(model_, textureHandle_, &camera_);
-
-	// 要素数
-	const uint32_t kNumBlockVirtical = 10;
-	const uint32_t kNumBlockHorizontal = 20;
-
-	// ブロック一個分の横幅
-	const float kBlockWidth = 2.0f;
-	const float kBlockHeight = 2.0f;
-
-	// 要素数を確保する
-	worldTransformBlocks_.resize(kNumBlockVirtical);
-	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
-		worldTransformBlocks_[i].resize(kNumBlockHorizontal);
-	}
-
-	// キューブの生成
-	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
-		for (uint32_t j = 0; j < kNumBlockHorizontal; j++) {
-			if ((i + j) % 2 == 1) {
-				continue;
-			}
-				worldTransformBlocks_[i][j] = new WorldTransform();
-				worldTransformBlocks_[i][j]->Initialize();
-				worldTransformBlocks_[i][j]->translation_.x = kBlockWidth * j;
-				worldTransformBlocks_[i][j]->translation_.y = kBlockHeight * i;
-			
-		}
-	}
+	player_->Initialize(modelPlayer_, textureHandle_, &camera_);
 
 	// デバックカメラの生成
 	debugCamera_ = new DebugCamera(WinApp::kWindowWidth, WinApp::kWindowHeight);
 	debugCamera_->SetFarZ(WinApp::kWindowWidth);
 
-	//3Dモデルの生成
+	// 3Dモデルの生成
 	modelSkydome_ = Model::CreateFromOBJ("skydome", true);
 
-	//天球の生成と初期化
+	// 天球の生成と初期化
 	skydome_ = new Skydome();
-	skydome_->Initialize(modelSkydome_,&camera_);
+	skydome_->Initialize(modelSkydome_, &camera_);
 
+	//マップチップフィールドの生成と初期化
+	mapChipfield_ = new MapChipFiled();
+	mapChipfield_->LoadMapChipCsv("Resources/blocks.csv");
+
+	GenerateBlocks();
 }
 
 void GameScene::Update() {
@@ -104,8 +84,9 @@ void GameScene::Update() {
 		camera_.UpdateMatrix();
 	}
 
-	//スカイドームの更新
+	// スカイドームの更新
 	skydome_->Update();
+
 }
 
 void GameScene::Draw() {
@@ -126,20 +107,48 @@ void GameScene::Draw() {
 				continue;
 			}
 
-			model_->Draw(*worldTransformBlock, camera_);
+			modelBlock_->Draw(*worldTransformBlock, camera_);
 		}
 	}
 
-	//スカイドーム描画
+	// スカイドーム描画
 	skydome_->Draw();
 
 	// 3Dモデル描画後処理
 	Model::PostDraw();
 }
 
+void GameScene::GenerateBlocks() {
+	// 要素数
+	const uint32_t kNumBlockVirtical = mapChipfield_->GetNumBlockVirtical();
+	const uint32_t kNumBlockHorizontal = mapChipfield_->GetNumBlockHorizontal();
+
+	// 要素数を確保する
+	worldTransformBlocks_.resize(kNumBlockVirtical);
+	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
+		worldTransformBlocks_[i].resize(kNumBlockHorizontal);
+	}
+
+	// キューブの生成
+	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
+		for (uint32_t j = 0; j < kNumBlockHorizontal; j++) {
+
+			if (mapChipfield_->GetMapChipTypeByIndex(j, i) == MapChipType::kBlock) {
+				WorldTransform* worldTransform = new WorldTransform();
+				worldTransform->Initialize();
+				worldTransformBlocks_[i][j] = worldTransform;
+				worldTransformBlocks_[i][j]->translation_ = mapChipfield_->GetMapChipPositionByIndex(j,i);
+			}
+		}
+	}
+}
+
 GameScene::~GameScene() {
 	// 3Dモデルデータの解放
-	delete model_;
+	delete modelBlock_;
+
+	// 3Dモデルデータ解放(Player)
+	delete modelPlayer_;
 
 	// 自キャラデータの解放
 	delete player_;
@@ -155,6 +164,10 @@ GameScene::~GameScene() {
 	// デバックカメラデータ解放
 	delete debugCamera_;
 
-	//3Dモデルデータ解放(Skydome)
+	// 3Dモデルデータ解放(Skydome)
 	delete modelSkydome_;
+
+	//マップチップフィールドの解放
+	delete mapChipfield_;
+
 }

@@ -1,9 +1,10 @@
 #pragma once
 #include "KamataEngine.h"
+#include "MapChipFiled.h"
 #include "Player.h"
+#include "Skydome.h"
 #include "math.h"
 #include <vector>
-#include "Skydome.h"
 
 // ゲームシーン
 class GameScene {
@@ -17,6 +18,9 @@ public:
 	// 描画
 	void Draw();
 
+	//表示ブロックの生成
+	void GenerateBlocks();
+
 	// デストラクタ
 	~GameScene();
 
@@ -24,8 +28,8 @@ private:
 	// テクスチャハンドル
 	uint32_t textureHandle_ = 0;
 
-	// 3Dモデル
-	KamataEngine::Model* model_ = nullptr;
+	// ブロック3Dモデル
+	KamataEngine::Model* modelBlock_ = nullptr;
 
 	// ワールドトランスフォーム
 	KamataEngine::WorldTransform worldTransform_;
@@ -35,6 +39,9 @@ private:
 
 	// 自キャラ
 	Player* player_ = nullptr;
+
+	// 自キャラ3Dモデル
+	KamataEngine::Model* modelPlayer_ = nullptr;
 
 	// 配列の生成
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
@@ -48,9 +55,12 @@ private:
 	// デバックカメラ
 	KamataEngine::DebugCamera* debugCamera_ = nullptr;
 
-	//スカイドーム
+	// スカイドーム
 	Skydome* skydome_ = nullptr;
 
-	//3Dモデル
+	// スカイドーム3Dモデル
 	KamataEngine::Model* modelSkydome_ = nullptr;
+
+	// マップチップフィールド
+	MapChipFiled* mapChipfield_;
 };
