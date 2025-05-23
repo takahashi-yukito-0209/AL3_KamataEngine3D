@@ -28,4 +28,7 @@ public:
 
 	//ワールド行列更新関数
 	void WorldTransformUpdate(KamataEngine::WorldTransform& worldTransform);
+
+	// イージング(easeInOut)
+	float easeInOut(float timer, float start, float end);
 };

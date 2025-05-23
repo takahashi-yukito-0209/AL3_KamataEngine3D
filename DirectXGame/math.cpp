@@ -1,6 +1,7 @@
 #include "math.h"
 #include <assert.h>
 #include <cmath>
+#include <algorithm>
 
 using namespace KamataEngine;
 
@@ -100,8 +101,23 @@ KamataEngine::Matrix4x4 Math::MakeAffineMatrix(const KamataEngine::Vector3& scal
 
 // ワールド行列更新関数
 void Math::WorldTransformUpdate(KamataEngine::WorldTransform& worldTransform) {
-	//スケール、回転、平行移動を合成して行列を計算する
+	// スケール、回転、平行移動を合成して行列を計算する
 	worldTransform.matWorld_ = MakeAffineMatrix(worldTransform.scale_, worldTransform.rotation_, worldTransform.translation_);
-	//定数バッファに転送
+	// 定数バッファに転送
 	worldTransform.TransferMatrix();
-};
+}
+
+// イージング(easeInOut)
+float Math::easeInOut(float timer, float start, float end) {
+
+	// t を時間の進行として設定し、最大値を1.0fに制限
+	timer = std::clamp(timer, 0.0f, 1.0f); 
+
+	// イーズイン・イーズアウト補間を計算
+	float easedT = timer * timer * (3.0f - 2.0f * timer);
+
+	// 補間された位置を計算
+	return (1.0f - easedT) * start + easedT * end;
+}
+
+

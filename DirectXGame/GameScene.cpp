@@ -7,7 +7,7 @@ void GameScene::Initialize() {
 	textureHandle_ = TextureManager::Load("sample.png");
 
 	// 3Dモデルの生成
-	modelBlock_ = Model::CreateFromOBJ("block",true);
+	modelBlock_ = Model::CreateFromOBJ("block", true);
 
 	// ワールドトランスフォームの初期化
 	worldTransform_.Initialize();
@@ -24,8 +24,11 @@ void GameScene::Initialize() {
 	// 自キャラの生成
 	player_ = new Player();
 
+	// 座標をマップチップ番号で指定
+	Vector3 playerPosition = mapChipfield_->GetMapChipPositionByIndex(1, 18);
+
 	// 自キャラの初期化
-	player_->Initialize(modelPlayer_, textureHandle_, &camera_);
+	player_->Initialize(modelPlayer_, &camera_, playerPosition);
 
 	// デバックカメラの生成
 	debugCamera_ = new DebugCamera(WinApp::kWindowWidth, WinApp::kWindowHeight);
@@ -38,7 +41,7 @@ void GameScene::Initialize() {
 	skydome_ = new Skydome();
 	skydome_->Initialize(modelSkydome_, &camera_);
 
-	//マップチップフィールドの生成と初期化
+	// マップチップフィールドの生成と初期化
 	mapChipfield_ = new MapChipFiled();
 	mapChipfield_->LoadMapChipCsv("Resources/blocks.csv");
 
@@ -86,7 +89,6 @@ void GameScene::Update() {
 
 	// スカイドームの更新
 	skydome_->Update();
-
 }
 
 void GameScene::Draw() {
@@ -137,7 +139,7 @@ void GameScene::GenerateBlocks() {
 				WorldTransform* worldTransform = new WorldTransform();
 				worldTransform->Initialize();
 				worldTransformBlocks_[i][j] = worldTransform;
-				worldTransformBlocks_[i][j]->translation_ = mapChipfield_->GetMapChipPositionByIndex(j,i);
+				worldTransformBlocks_[i][j]->translation_ = mapChipfield_->GetMapChipPositionByIndex(j, i);
 			}
 		}
 	}
@@ -167,7 +169,6 @@ GameScene::~GameScene() {
 	// 3Dモデルデータ解放(Skydome)
 	delete modelSkydome_;
 
-	//マップチップフィールドの解放
+	// マップチップフィールドの解放
 	delete mapChipfield_;
-
 }
