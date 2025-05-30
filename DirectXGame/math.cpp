@@ -120,4 +120,100 @@ float Math::easeInOut(float timer, float start, float end) {
 	return (1.0f - easedT) * start + easedT * end;
 }
 
+// イージング(easeInOut)
+KamataEngine::Vector3 Math::Lerp(const KamataEngine::Vector3& v1, const KamataEngine::Vector3& v2, float t) { 
+	 
+	t = std::clamp(t, 0.0f, 1.0f);
 
+	 return {
+	     (1.0f - t) * v1.x + t * v2.x,
+	     (1.0f - t) * v1.y + t * v2.y,
+	     (1.0f - t) * v1.z + t * v2.z,
+	 };
+}
+
+
+// 加算
+KamataEngine::Vector3 operator+(const KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
+	Vector3 result;
+
+	result.x = lhv.x + rhv.x;
+	result.y = lhv.y + rhv.y;
+	result.z = lhv.z + rhv.z;
+
+	return result;
+}
+
+// 減算
+KamataEngine::Vector3 operator-(const KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
+	Vector3 result;
+
+	result.x = lhv.x - rhv.x;
+	result.y = lhv.y - rhv.y;
+	result.z = lhv.z - rhv.z;
+
+	return result;
+}
+
+// スカラー倍
+KamataEngine::Vector3 operator*(const KamataEngine::Vector3& v, float s) {
+	Vector3 result;
+
+	result.x = v.x * s;
+	result.y = v.y * s;
+	result.z = v.z * s;
+
+	return result;
+}
+
+// スカラー除算
+KamataEngine::Vector3 operator/(const KamataEngine::Vector3& v, float s) {
+	
+	Vector3 result;
+	
+	result.x = v.x / s;
+	result.y = v.y / s;
+	result.z = v.z / s;
+
+	return result;
+}
+
+// 加算代入
+KamataEngine::Vector3& operator+=(KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
+	
+	lhv.x += rhv.x;
+	lhv.y += rhv.y;
+	lhv.z += rhv.z;
+
+	return lhv;
+}
+
+// 減算代入
+KamataEngine::Vector3& operator-=(KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
+	
+	lhv.x -= rhv.x;
+	lhv.y -= rhv.y;
+	lhv.z -= rhv.z;
+
+	return lhv;
+}
+
+// スカラー倍代入
+KamataEngine::Vector3& operator*=(KamataEngine::Vector3& v, float s) {
+	
+	v.x *= s;
+	v.y *= s;
+	v.z *= s;
+
+	return v;
+}
+
+// スカラー除算代入
+KamataEngine::Vector3& operator/=(KamataEngine::Vector3& v, float s) {
+	
+	v.x /= s;
+	v.y /= s;
+	v.z /= s;
+
+	return v;
+}

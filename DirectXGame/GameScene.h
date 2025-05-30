@@ -1,4 +1,5 @@
 #pragma once
+#include "CameraController.h"
 #include "KamataEngine.h"
 #include "MapChipFiled.h"
 #include "Player.h"
@@ -18,7 +19,7 @@ public:
 	// 描画
 	void Draw();
 
-	//表示ブロックの生成
+	// 表示ブロックの生成
 	void GenerateBlocks();
 
 	// デストラクタ
@@ -63,4 +64,7 @@ private:
 
 	// マップチップフィールド
 	MapChipFiled* mapChipfield_;
+
+	//カメラコントローラー
+	CameraController* cameraController_;
 };

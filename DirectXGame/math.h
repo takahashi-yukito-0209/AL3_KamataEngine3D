@@ -1,5 +1,18 @@
 #pragma once
 #include "KamataEngine.h"
+
+// 算術演算子オーバーロード（非代入系）
+KamataEngine::Vector3 operator+(const KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv);
+KamataEngine::Vector3 operator-(const KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv);
+KamataEngine::Vector3 operator*(const KamataEngine::Vector3& v, float s);
+KamataEngine::Vector3 operator/(const KamataEngine::Vector3& v, float s);
+
+// 代入演算子オーバーロード
+KamataEngine::Vector3& operator+=(KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv);
+KamataEngine::Vector3& operator-=(KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv);
+KamataEngine::Vector3& operator*=(KamataEngine::Vector3& v, float s);
+KamataEngine::Vector3& operator/=(KamataEngine::Vector3& v, float s);
+
 class Math {
 public:
 	// 1.平行移動行列
@@ -26,9 +39,11 @@ public:
 	// 3次元アフィン変換行列
 	KamataEngine::Matrix4x4 MakeAffineMatrix(const KamataEngine::Vector3& scale, const KamataEngine::Vector3& rotate, const KamataEngine::Vector3& translate);
 
-	//ワールド行列更新関数
+	// ワールド行列更新関数
 	void WorldTransformUpdate(KamataEngine::WorldTransform& worldTransform);
 
 	// イージング(easeInOut)
 	float easeInOut(float timer, float start, float end);
+
+	KamataEngine::Vector3 Lerp(const KamataEngine::Vector3& v1, const KamataEngine::Vector3& v2, float t);
 };

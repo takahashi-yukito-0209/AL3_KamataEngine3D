@@ -79,7 +79,7 @@ void Player::Update() {
 			}
 
 			// 加速・減速
-			velocity_.x += acceleration.x;
+			velocity_ += acceleration;
 
 			// 最大速度制限
 			velocity_.x = std::clamp(velocity_.x, -kLimitRunSpeed, kLimitRunSpeed);
@@ -101,7 +101,7 @@ void Player::Update() {
 
 	} else {
 		// 落下速度
-		velocity_.y += -kGravityAcceleration;
+		velocity_.y += -kGravityAcceleration * (1.0f / 60.0f);
 
 		// 落下速度制限
 		velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
@@ -131,8 +131,7 @@ void Player::Update() {
 	}
 
 	// 移動
-	worldTransform_.translation_.x += velocity_.x;
-	worldTransform_.translation_.y += velocity_.y;
+	worldTransform_.translation_ += velocity_;
 
 	// 旋回制御
 	if (turnTimer_ > 0.0f) {

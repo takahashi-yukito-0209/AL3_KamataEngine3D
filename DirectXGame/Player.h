@@ -4,6 +4,12 @@
 
 class Player {
 public:
+	// 左右
+	enum class LRDirection {
+		kRight,
+		kLeft,
+	};
+
 	// 初期化
 	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera,const KamataEngine::Vector3& position);
 
@@ -12,6 +18,14 @@ public:
 
 	// 描画
 	void Draw();
+
+	// ---getter---
+	
+	//WorldTransform
+	const KamataEngine::WorldTransform& GetWorldTransform() const { return worldTransform_; };
+
+	//Velocity
+	const KamataEngine::Vector3& GetVelocity() const { return velocity_; };
 
 private:
 	// ワールド変換データ
@@ -35,17 +49,11 @@ private:
 	//加速度
 	static inline const float kAcceleration = 0.08f;
 
-	//速度減衰率
+	//非入力時の摩擦係数
 	static inline const float kAttenuation = 0.06f;
 
-	//最大速度制限
+	//最大速度
 	static inline const float kLimitRunSpeed = 0.1f;
-
-	//左右
-	enum class LRDirection {
-		kRight,
-		kLeft,
-	};
 
 	//初期の向いている方向
 	LRDirection lrDirection_ = LRDirection::kRight;
@@ -63,11 +71,11 @@ private:
 	bool onGround_ = true;
 
 	//重力加速度(下方向)
-	static inline const float kGravityAcceleration = 0.98f;
+	static inline const float kGravityAcceleration = 9.8f;
 
 	// 最大落下速度(下方向)
 	static inline const float kLimitFallSpeed = 0.5f;
 
 	// ジャンプ初速(下方向)
-	static inline const float kJumpAcceleration = 3.0f;
+	static inline const float kJumpAcceleration = 1.0f;
 };
