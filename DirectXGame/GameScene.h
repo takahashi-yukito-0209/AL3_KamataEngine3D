@@ -63,7 +63,7 @@ private:
 	KamataEngine::Model* modelSkydome_ = nullptr;
 
 	// マップチップフィールド
-	MapChipFiled* mapChipfield_;
+	MapChipField* mapChipField_;
 
 	//カメラコントローラー
 	CameraController* cameraController_;

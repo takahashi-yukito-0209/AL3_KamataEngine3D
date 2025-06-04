@@ -21,11 +21,18 @@ void GameScene::Initialize() {
 	// 自キャラ3Dモデルの生成
 	modelPlayer_ = Model::CreateFromOBJ("player", true);
 
+	// マップチップフィールドの生成と初期化
+	mapChipField_ = new MapChipField();
+	mapChipField_->LoadMapChipCsv("Resources/blocks.csv");
+	GenerateBlocks();
+
 	// 自キャラの生成
 	player_ = new Player();
 
 	// 座標をマップチップ番号で指定
-	Vector3 playerPosition = mapChipfield_->GetMapChipPositionByIndex(1, 18);
+	Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(2, 18);
+
+	player_->SetMapChipField(mapChipField_);
 
 	// 自キャラの初期化
 	player_->Initialize(modelPlayer_, &camera_, playerPosition);
@@ -40,12 +47,6 @@ void GameScene::Initialize() {
 	// 天球の生成と初期化
 	skydome_ = new Skydome();
 	skydome_->Initialize(modelSkydome_, &camera_);
-
-	// マップチップフィールドの生成と初期化
-	mapChipfield_ = new MapChipFiled();
-	mapChipfield_->LoadMapChipCsv("Resources/blocks.csv");
-
-	GenerateBlocks();
 
 	// カメラコントローラ生成
 	cameraController_ = new CameraController();
@@ -141,8 +142,8 @@ void GameScene::Draw() {
 
 void GameScene::GenerateBlocks() {
 	// 要素数
-	const uint32_t kNumBlockVirtical = mapChipfield_->GetNumBlockVirtical();
-	const uint32_t kNumBlockHorizontal = mapChipfield_->GetNumBlockHorizontal();
+	const uint32_t kNumBlockVirtical = mapChipField_->GetNumBlockVirtical();
+	const uint32_t kNumBlockHorizontal = mapChipField_->GetNumBlockHorizontal();
 
 	// 要素数を確保する
 	worldTransformBlocks_.resize(kNumBlockVirtical);
@@ -154,11 +155,11 @@ void GameScene::GenerateBlocks() {
 	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
 		for (uint32_t j = 0; j < kNumBlockHorizontal; j++) {
 
-			if (mapChipfield_->GetMapChipTypeByIndex(j, i) == MapChipType::kBlock) {
+			if (mapChipField_->GetMapChipTypeByIndex(j, i) == MapChipType::kBlock) {
 				WorldTransform* worldTransform = new WorldTransform();
 				worldTransform->Initialize();
 				worldTransformBlocks_[i][j] = worldTransform;
-				worldTransformBlocks_[i][j]->translation_ = mapChipfield_->GetMapChipPositionByIndex(j, i);
+				worldTransformBlocks_[i][j]->translation_ = mapChipField_->GetMapChipPositionByIndex(j, i);
 			}
 		}
 	}
@@ -189,5 +190,5 @@ GameScene::~GameScene() {
 	delete modelSkydome_;
 
 	// マップチップフィールドの解放
-	delete mapChipfield_;
+	delete mapChipField_;
 }

@@ -2,12 +2,23 @@
 #include "KamataEngine.h"
 #include "math.h"
 
+class MapChipField;
+
 class Player {
 public:
 	// 左右
 	enum class LRDirection {
 		kRight,
 		kLeft,
+	};
+
+	//角
+	enum Corner { 
+		kRightBottom,//右下
+		kLeftBottom,//左下
+		kRightTop,//右上
+		kLeftTop,//左上
+		kNumCorner//要素数
 	};
 
 	// 初期化
@@ -26,6 +37,12 @@ public:
 
 	//Velocity
 	const KamataEngine::Vector3& GetVelocity() const { return velocity_; };
+
+	// ---setter---
+
+	//MapChipField
+	void SetMapChipField(MapChipField* mapChipField) { mapChipField_ = mapChipField; }
+
 
 private:
 	// ワールド変換データ
@@ -47,13 +64,13 @@ private:
 	KamataEngine::Vector3 velocity_ = {};
 
 	//加速度
-	static inline const float kAcceleration = 0.08f;
+	static inline const float kAcceleration = 0.1f;
 
 	//非入力時の摩擦係数
-	static inline const float kAttenuation = 0.06f;
+	static inline const float kAttenuation = 0.05f;
 
 	//最大速度
-	static inline const float kLimitRunSpeed = 0.1f;
+	static inline const float kLimitRunSpeed = 0.3f;
 
 	//初期の向いている方向
 	LRDirection lrDirection_ = LRDirection::kRight;
@@ -78,4 +95,45 @@ private:
 
 	// ジャンプ初速(下方向)
 	static inline const float kJumpAcceleration = 1.0f;
+
+	//マップチップによるフィールド
+	MapChipField* mapChipField_ = nullptr;
+
+	//キャラクターの当たり判定サイズ
+	static inline const float kWidth = 0.8f;
+	static inline const float kHeight = 0.8f;
+
+	//空白
+	static inline const float kBlank = 0.04f;
+
+	//移動入力関数
+	void InputMove();
+
+	//マップとの当たり判定情報
+	struct CollisionMapInfo {
+
+		bool ceiling = false;//天井衝突フラグ
+		bool landing = false;//着地フラグ
+		bool hitWall = false;//壁接触フラグ
+
+		KamataEngine::Vector3 move;//移動量
+	};
+
+	//マップ衝突判定関数
+	void CheckMapCollision(CollisionMapInfo& info);
+
+	//マップ衝突判定上方向
+	void CheckMapCollisionUp(CollisionMapInfo& info);
+	
+	// マップ衝突判定下方向
+	void CheckMapCollisionDown(CollisionMapInfo& info);
+
+	// マップ衝突判定右方向
+	void CheckMapCollisionRight(CollisionMapInfo& info);
+	
+	// マップ衝突判定左方向
+	void CheckMapCollisionLeft(CollisionMapInfo& info);
+
+	//指定した角の座標計算関数
+	KamataEngine::Vector3 CornerPosition(const KamataEngine::Vector3& center, Corner corner);
 };
