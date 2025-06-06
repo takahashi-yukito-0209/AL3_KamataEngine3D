@@ -136,4 +136,19 @@ private:
 
 	//指定した角の座標計算関数
 	KamataEngine::Vector3 CornerPosition(const KamataEngine::Vector3& center, Corner corner);
+
+	//接地状態の切り替え処理関数
+	void UpdateOnGround(const CollisionMapInfo& info);
+
+	// 壁接触している場合の処理
+	void UpdateOnWall(const CollisionMapInfo& info);
+
+	// 着地時の速度減衰率
+	static inline const float kAttenuationLanding = 0.0f;
+
+	// 微小な数値
+	static inline const float kGroundSearchHeight = 0.06f;
+
+	// 着地時の速度減衰率
+	static inline const float kAttenuationWall = 0.2f;
 };
