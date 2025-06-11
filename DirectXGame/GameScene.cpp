@@ -78,6 +78,11 @@ void GameScene::Initialize() {
 
 		enemies_.push_back(newEnemy);
 	}
+
+	//仮生成処理
+	modelDeathParticles_ = Model::CreateFromOBJ("deathParticle", true);
+	deathParticles_ = new DeathParticles;
+	deathParticles_->Initialize(modelDeathParticles_, &camera_, playerPosition);
 }
 
 void GameScene::Update() {
@@ -135,6 +140,11 @@ void GameScene::Update() {
 
 	// 衝突判定
 	CheckAllCollisions();
+
+	//デスパーティクル更新
+	if (deathParticles_) {
+		deathParticles_->Update();
+	}
 }
 
 void GameScene::Draw() {
@@ -165,6 +175,11 @@ void GameScene::Draw() {
 	// 敵描画
 	for (Enemy* enemy : enemies_) {
 		enemy->Draw();
+	}
+
+	//デスパーティクル描画
+	if (deathParticles_) {
+		deathParticles_->Draw();
 	}
 
 	// 3Dモデル描画後処理
@@ -227,6 +242,10 @@ GameScene::~GameScene() {
 	for (Enemy* enemy : enemies_) {
 		delete enemy;
 	}
+
+	//デスパーティクルデータ解放
+	delete deathParticles_;
+	delete modelDeathParticles_;
 }
 
 void GameScene::CheckAllCollisions() {

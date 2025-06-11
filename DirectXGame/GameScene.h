@@ -7,6 +7,7 @@
 #include "Skydome.h"
 #include "math.h"
 #include <vector>
+#include "DeathParticles.h"
 
 // ゲームシーン
 class GameScene {
@@ -77,4 +78,10 @@ private:
 
 	// 敵キャラ3Dモデル
 	KamataEngine::Model* modelEnemy_ = nullptr;
+
+	//デスパーティクル
+	DeathParticles* deathParticles_ = nullptr;
+
+	//デスパーティクル3Dモデル
+	KamataEngine::Model* modelDeathParticles_ = nullptr;
 };
