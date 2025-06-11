@@ -63,6 +63,18 @@ void GameScene::Initialize() {
 	// 移動範囲指定
 	CameraController::Rect cameraArea = {12.0f, 100 - 12.0f, 6.0f, 6.0f};
 	cameraController_->SetMovableArea(cameraArea);
+
+	// 敵キャラ3Dモデルの生成
+	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
+
+	//敵キャラの生成
+	enemy_ = new Enemy();
+
+	// 座標をマップチップ番号で指定
+	Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(12, 18);
+
+	// 敵キャラの初期化
+	enemy_->Initialize(modelEnemy_, &camera_, enemyPosition);
 }
 
 void GameScene::Update() {
@@ -109,6 +121,9 @@ void GameScene::Update() {
 
 	// カメラコントローラ更新
 	cameraController_->Update();
+
+	//敵更新
+	enemy_->Update();
 }
 
 void GameScene::Draw() {
@@ -135,6 +150,9 @@ void GameScene::Draw() {
 
 	// スカイドーム描画
 	skydome_->Draw();
+
+	//敵描画
+	enemy_->Draw();
 
 	// 3Dモデル描画後処理
 	Model::PostDraw();
@@ -191,4 +209,7 @@ GameScene::~GameScene() {
 
 	// マップチップフィールドの解放
 	delete mapChipField_;
+
+	//敵データ解放
+	delete enemy_;
 }

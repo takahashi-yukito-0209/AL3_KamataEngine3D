@@ -6,6 +6,7 @@
 #include "Skydome.h"
 #include "math.h"
 #include <vector>
+#include "Enemy.h"
 
 // ゲームシーン
 class GameScene {
@@ -67,4 +68,10 @@ private:
 
 	//カメラコントローラー
 	CameraController* cameraController_;
+
+	//敵
+	Enemy* enemy_ = nullptr;
+
+	// 敵キャラ3Dモデル
+	KamataEngine::Model* modelEnemy_ = nullptr;
 };
