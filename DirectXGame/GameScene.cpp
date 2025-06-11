@@ -67,33 +67,32 @@ void GameScene::Initialize() {
 	// 敵キャラ3Dモデルの生成
 	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
 
-	//敵キャラの生成
-	enemy_ = new Enemy();
+	// 敵の生成と座標設定、初期化
+	for (int32_t i = 0; i < 2; ++i) {
 
-	// 座標をマップチップ番号で指定
-	Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(12, 18);
+		Enemy* newEnemy = new Enemy();
 
-	// 敵キャラの初期化
-	enemy_->Initialize(modelEnemy_, &camera_, enemyPosition);
+		Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(14 + i * 2, 18);
+
+		newEnemy->Initialize(modelEnemy_, &camera_, enemyPosition);
+
+		enemies_.push_back(newEnemy);
+	}
 }
 
 void GameScene::Update() {
 	// 自キャラの更新
 	player_->Update();
 
-	// ブロックの更新
-	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
-		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
-			if (!worldTransformBlock) {
-				continue;
-			}
+	// スカイドームの更新
+	skydome_->Update();
 
-			// アフィン変換行列の作成
-			worldTransformBlock->matWorld_ = math_.MakeAffineMatrix(worldTransformBlock->scale_, worldTransformBlock->rotation_, worldTransformBlock->translation_);
+	// カメラコントローラ更新
+	cameraController_->Update();
 
-			// 定数バッファに転送する
-			worldTransformBlock->TransferMatrix();
-		}
+	// 敵更新
+	for (Enemy* enemy : enemies_) {
+		enemy->Update();
 	}
 
 #ifdef _DEBUG
@@ -116,14 +115,26 @@ void GameScene::Update() {
 		camera_.UpdateMatrix();
 	}
 
-	// スカイドームの更新
-	skydome_->Update();
+	// ブロックの更新
+	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
+		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
+			if (!worldTransformBlock) {
+				continue;
+			}
 
-	// カメラコントローラ更新
-	cameraController_->Update();
+			// アフィン変換行列の作成
+			worldTransformBlock->matWorld_ = math_.MakeAffineMatrix(worldTransformBlock->scale_, worldTransformBlock->rotation_, worldTransformBlock->translation_);
 
-	//敵更新
-	enemy_->Update();
+			// 定数バッファに転送する
+			worldTransformBlock->TransferMatrix();
+		}
+	}
+
+	// デバックカメラの更新
+	debugCamera_->Update();
+
+	// 衝突判定
+	CheckAllCollisions();
 }
 
 void GameScene::Draw() {
@@ -151,8 +162,10 @@ void GameScene::Draw() {
 	// スカイドーム描画
 	skydome_->Draw();
 
-	//敵描画
-	enemy_->Draw();
+	// 敵描画
+	for (Enemy* enemy : enemies_) {
+		enemy->Draw();
+	}
 
 	// 3Dモデル描画後処理
 	Model::PostDraw();
@@ -210,6 +223,34 @@ GameScene::~GameScene() {
 	// マップチップフィールドの解放
 	delete mapChipField_;
 
-	//敵データ解放
-	delete enemy_;
+	// 敵データ解放
+	for (Enemy* enemy : enemies_) {
+		delete enemy;
+	}
+}
+
+void GameScene::CheckAllCollisions() {
+	// 判定対象1と2の座標
+	AABB aabb1, aabb2;
+
+#pragma region 自キャラと敵キャラの当たり判定
+	{
+		// 自キャラの座標
+		aabb1 = player_->GetAABB();
+
+		// 自キャラと敵弾全ての当たり判定
+		for (Enemy* enemy : enemies_) {
+			// 敵弾の座標
+			aabb2 = enemy->GetAABB();
+
+			// AABB同士の交差判定
+			if (math_.IsCollision(aabb1, aabb2)) {
+				// 自キャラの衝突時コールバックを呼び出す
+				player_->OnCollision(enemy);
+				// 敵弾の衝突時コールバックを呼び出す
+				enemy->OnCollision(player_);
+			}
+		}
+	}
+#pragma endregion
 }

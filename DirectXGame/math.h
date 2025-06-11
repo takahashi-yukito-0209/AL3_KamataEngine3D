@@ -13,6 +13,11 @@ KamataEngine::Vector3& operator-=(KamataEngine::Vector3& lhv, const KamataEngine
 KamataEngine::Vector3& operator*=(KamataEngine::Vector3& v, float s);
 KamataEngine::Vector3& operator/=(KamataEngine::Vector3& v, float s);
 
+struct AABB {
+	KamataEngine::Vector3 min;
+	KamataEngine::Vector3 max;
+};
+
 class Math {
 public:
 	// 1.平行移動行列
@@ -46,4 +51,6 @@ public:
 	float easeInOut(float timer, float start, float end);
 
 	KamataEngine::Vector3 Lerp(const KamataEngine::Vector3& v1, const KamataEngine::Vector3& v2, float t);
+
+	bool IsCollision(const AABB& aabb1, const AABB& aabb2);
 };

@@ -1,7 +1,7 @@
 #include "math.h"
+#include <algorithm>
 #include <assert.h>
 #include <cmath>
-#include <algorithm>
 
 using namespace KamataEngine;
 
@@ -111,7 +111,7 @@ void Math::WorldTransformUpdate(KamataEngine::WorldTransform& worldTransform) {
 float Math::easeInOut(float timer, float start, float end) {
 
 	// t を時間の進行として設定し、最大値を1.0fに制限
-	timer = std::clamp(timer, 0.0f, 1.0f); 
+	timer = std::clamp(timer, 0.0f, 1.0f);
 
 	// イーズイン・イーズアウト補間を計算
 	float easedT = timer * timer * (3.0f - 2.0f * timer);
@@ -121,17 +121,22 @@ float Math::easeInOut(float timer, float start, float end) {
 }
 
 // イージング(easeInOut)
-KamataEngine::Vector3 Math::Lerp(const KamataEngine::Vector3& v1, const KamataEngine::Vector3& v2, float t) { 
-	 
+KamataEngine::Vector3 Math::Lerp(const KamataEngine::Vector3& v1, const KamataEngine::Vector3& v2, float t) {
+
 	t = std::clamp(t, 0.0f, 1.0f);
 
-	 return {
-	     (1.0f - t) * v1.x + t * v2.x,
-	     (1.0f - t) * v1.y + t * v2.y,
-	     (1.0f - t) * v1.z + t * v2.z,
-	 };
+	return {
+	    (1.0f - t) * v1.x + t * v2.x,
+	    (1.0f - t) * v1.y + t * v2.y,
+	    (1.0f - t) * v1.z + t * v2.z,
+	};
 }
 
+bool Math::IsCollision(const AABB& aabb1, const AABB& aabb2) {
+	return (aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) && // x軸
+	       (aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) && // y軸
+	       (aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z);   // z軸
+}
 
 // 加算
 KamataEngine::Vector3 operator+(const KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
@@ -168,9 +173,9 @@ KamataEngine::Vector3 operator*(const KamataEngine::Vector3& v, float s) {
 
 // スカラー除算
 KamataEngine::Vector3 operator/(const KamataEngine::Vector3& v, float s) {
-	
+
 	Vector3 result;
-	
+
 	result.x = v.x / s;
 	result.y = v.y / s;
 	result.z = v.z / s;
@@ -180,7 +185,7 @@ KamataEngine::Vector3 operator/(const KamataEngine::Vector3& v, float s) {
 
 // 加算代入
 KamataEngine::Vector3& operator+=(KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
-	
+
 	lhv.x += rhv.x;
 	lhv.y += rhv.y;
 	lhv.z += rhv.z;
@@ -190,7 +195,7 @@ KamataEngine::Vector3& operator+=(KamataEngine::Vector3& lhv, const KamataEngine
 
 // 減算代入
 KamataEngine::Vector3& operator-=(KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
-	
+
 	lhv.x -= rhv.x;
 	lhv.y -= rhv.y;
 	lhv.z -= rhv.z;
@@ -200,7 +205,7 @@ KamataEngine::Vector3& operator-=(KamataEngine::Vector3& lhv, const KamataEngine
 
 // スカラー倍代入
 KamataEngine::Vector3& operator*=(KamataEngine::Vector3& v, float s) {
-	
+
 	v.x *= s;
 	v.y *= s;
 	v.z *= s;
@@ -210,7 +215,7 @@ KamataEngine::Vector3& operator*=(KamataEngine::Vector3& v, float s) {
 
 // スカラー除算代入
 KamataEngine::Vector3& operator/=(KamataEngine::Vector3& v, float s) {
-	
+
 	v.x /= s;
 	v.y /= s;
 	v.z /= s;
