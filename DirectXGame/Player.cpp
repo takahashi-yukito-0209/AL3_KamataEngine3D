@@ -107,8 +107,8 @@ AABB Player::GetAABB() {
 
 void Player::OnCollision(const Enemy* enemy) {
 	(void)enemy;
-	//// ジャンプ初速
-	// velocity_ += Vector3(0, kJumpAcceleration, 0);
+	//当たったら死ぬ
+	isDead_ = true;
 }
 
 void Player::InputMove() {

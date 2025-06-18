@@ -49,6 +49,9 @@ public:
 	// 衝突応答
 	void OnCollision(const Enemy* enemy);
 
+	// デスフラグ
+	bool IsDead() const { return isDead_; }
+
 	// ---setter---
 
 	// MapChipField
@@ -161,4 +164,7 @@ private:
 
 	// 着地時の速度減衰率
 	static inline const float kAttenuationWall = 0.2f;
+
+	// デスフラグ
+	bool isDead_ = false;
 };

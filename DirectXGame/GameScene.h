@@ -1,5 +1,6 @@
 #pragma once
 #include "CameraController.h"
+#include "DeathParticles.h"
 #include "Enemy.h"
 #include "KamataEngine.h"
 #include "MapChipFiled.h"
@@ -7,7 +8,6 @@
 #include "Skydome.h"
 #include "math.h"
 #include <vector>
-#include "DeathParticles.h"
 
 // ゲームシーン
 class GameScene {
@@ -30,7 +30,23 @@ public:
 	// 総当たりによる当たり判定
 	void CheckAllCollisions();
 
+	// 終了フラグのgetter
+	bool IsFinished() const { return finished_; };
+
 private:
+
+	// ゲームのフェーズ
+	enum class Phase {
+		kPlay,  // ゲームプレイ
+		kDeath, // デス演出
+	};
+
+	//ゲームの現在フェーズ
+	Phase phase_;
+
+	//フェーズの切り替え関数
+	void ChangePhase();
+
 	// テクスチャハンドル
 	uint32_t textureHandle_ = 0;
 
@@ -79,9 +95,12 @@ private:
 	// 敵キャラ3Dモデル
 	KamataEngine::Model* modelEnemy_ = nullptr;
 
-	//デスパーティクル
+	// デスパーティクル
 	DeathParticles* deathParticles_ = nullptr;
 
-	//デスパーティクル3Dモデル
+	// デスパーティクル3Dモデル
 	KamataEngine::Model* modelDeathParticles_ = nullptr;
+
+	// 終了フラグ
+	bool finished_ = false;
 };
