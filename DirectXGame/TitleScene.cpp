@@ -27,14 +27,38 @@ void TitleScene::Initialize() {
 	worldTransformPlayer_.translation_.x = -2.0f;
 
 	worldTransformPlayer_.translation_.y = -10.0f;
+
+	//フェード
+	fade_ = new Fade();
+	fade_->Initialize();
+	fade_->Start(Fade::Status::FadeIn, 1.0f);
 }
 
 void TitleScene::Update() {
 
-	//タイトルシーンの終了条件
-	//スペースキーを押したらシーンを終わる
-	if (Input::GetInstance()->PushKey(DIK_SPACE)) {
-		finished_ = true;
+	// フェードの更新
+	switch (phase_) {
+	case Phase::kFadeIn:
+		fade_->Update();
+
+		if (fade_->IsFinished()) {
+			phase_ = Phase::kMain;
+		}
+		break;
+	case Phase::kMain:
+		if (Input::GetInstance()->PushKey(DIK_SPACE)) {
+			fade_->Start(Fade::Status::FadeOut, 1.0f);
+			phase_ = Phase::kFadeOut;
+		}
+		break;
+	case Phase::kFadeOut:
+		fade_->Update();
+		// タイトルシーンの終了条件
+		// スペースキーを押したらシーンを終わる
+		if (fade_->IsFinished()) {
+			finished_ = true;
+		}
+		break;
 	}
 
 	counter_ += 1.0f / 60.0f;
@@ -64,10 +88,14 @@ void TitleScene::Draw() {
 	modelTitle_->Draw(worldTransformTitle_, camera_);
 	modelPlayer_->Draw(worldTransformPlayer_, camera_);
 
+	//フェード
+	fade_->Draw();
+
 	Model::PostDraw();
 }
 
 TitleScene::~TitleScene() { 
 	delete modelPlayer_;
 	delete modelTitle_;
+	delete fade_;
 }

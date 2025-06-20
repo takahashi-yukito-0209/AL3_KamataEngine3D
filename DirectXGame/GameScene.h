@@ -8,6 +8,7 @@
 #include "Skydome.h"
 #include "math.h"
 #include <vector>
+#include "Fade.h"
 
 // ゲームシーン
 class GameScene {
@@ -37,8 +38,10 @@ private:
 
 	// ゲームのフェーズ
 	enum class Phase {
+		kFadeIn,//フェードイン
 		kPlay,  // ゲームプレイ
 		kDeath, // デス演出
+		kFadeOut,//フェードアウト
 	};
 
 	//ゲームの現在フェーズ
@@ -103,4 +106,7 @@ private:
 
 	// 終了フラグ
 	bool finished_ = false;
+
+	//フェード
+	Fade* fade_ = nullptr;
 };
