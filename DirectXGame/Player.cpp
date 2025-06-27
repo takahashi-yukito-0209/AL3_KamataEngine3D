@@ -75,7 +75,21 @@ void Player::Draw() {
 
 	// 3Dモデルを描画
 	model_->Draw(worldTransform_, *camera_);
-	modelAttack_->Draw(worldTransform_, *camera_);
+	switch (attackPhase_) {
+
+	case AttackPhase::kAction:
+
+		modelAttack_->Draw(worldTransform_, *camera_);
+
+		break;
+
+	case AttackPhase::kRecovery:
+
+		modelAttack_->Draw(worldTransform_, *camera_);
+
+		break;
+	}
+	
 }
 
 KamataEngine::Vector3 Player::GetWorldPosition() {
@@ -217,6 +231,7 @@ void Player::BehaviorAttackUpdate() {
 		// 通常行動に戻る
 		if (attackParameter_ >= kRecoveryTime) {
 			behaviorRequest_ = Behavior::kRoot;
+			attackPhase_ = AttackPhase::kAnticipation;
 		}
 
 		break;
@@ -234,15 +249,22 @@ void Player::BehaviorAttackUpdate() {
 	// 移動
 	worldTransform_.translation_ += collisionMapInfo.move;
 
+	// 旋回制御
 	if (turnTimer_ > 0.0f) {
-		// タイマーを進める
-		turnTimer_ = std::max(turnTimer_ - (1.0f / 60.0f), 0.0f);
 
+		// 旋回タイマーを1/60秒だけカウントダウンする
+		turnTimer_ -= 1.0f / 60.0f;
+
+		t = 1.0f - (turnTimer_ / kTimeTurn);
+
+		// 左右の自キャラ角度テーブル
 		float destinationRotationYTable[] = {std::numbers::pi_v<float> / 2.0f, std::numbers::pi_v<float> * 3.0f / 2.0f};
 
+		// 状態に応じた角度を取得する
 		float destinationRotationY = destinationRotationYTable[static_cast<uint32_t>(lrDirection_)];
 
-		worldTransform_.rotation_.y = math_.easeInOut(destinationRotationY, turnFirstRotationY_, turnTimer_ / kTimeTurn);
+		// 自キャラの角度を設定する
+		worldTransform_.rotation_.y = math_.easeInOut(t, turnFirstRotationY_, destinationRotationY);
 	}
 
 	// トランスフォームの値をコピー
