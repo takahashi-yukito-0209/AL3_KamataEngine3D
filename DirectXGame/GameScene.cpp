@@ -21,6 +21,9 @@ void GameScene::Initialize() {
 	// 自キャラ3Dモデルの生成
 	modelPlayer_ = Model::CreateFromOBJ("player", true);
 
+	//プレイヤー攻撃用モデルの生成
+	modelAttack_ = Model::CreateFromOBJ("attack_effect", true);
+
 	// マップチップフィールドの生成と初期化
 	mapChipField_ = new MapChipField();
 	mapChipField_->LoadMapChipCsv("Resources/blocks.csv");
@@ -35,7 +38,7 @@ void GameScene::Initialize() {
 	player_->SetMapChipField(mapChipField_);
 
 	// 自キャラの初期化
-	player_->Initialize(modelPlayer_, &camera_, playerPosition);
+	player_->Initialize(modelPlayer_,modelAttack_, &camera_, playerPosition);
 
 	// デバックカメラの生成
 	debugCamera_ = new DebugCamera(WinApp::kWindowWidth, WinApp::kWindowHeight);
@@ -72,7 +75,7 @@ void GameScene::Initialize() {
 
 		Enemy* newEnemy = new Enemy();
 
-		Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(14 + i * 2, 18);
+		Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(14 + i * 2, 14);
 
 		newEnemy->Initialize(modelEnemy_, &camera_, enemyPosition);
 
@@ -326,6 +329,7 @@ void GameScene::Draw() {
 	// 自キャラの描画
 	if (!player_->IsDead()) {
 		player_->Draw();
+		modelAttack_->Draw(player_->GetWorldTransform(), camera_);
 	}
 
 	// ブロックの描画

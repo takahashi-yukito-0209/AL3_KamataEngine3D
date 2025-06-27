@@ -7,16 +7,21 @@
 
 using namespace KamataEngine;
 
-void Player::Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, const KamataEngine::Vector3& position) {
+void Player::Initialize(KamataEngine::Model* model, KamataEngine::Model* modelAttack, KamataEngine::Camera* camera, const KamataEngine::Vector3& position) {
 	// NULLポインタチェック
 	assert(model);
 
 	// 引数として受け取ったデータをメンバ変数に記録する
 	model_ = model;
+	modelAttack_ = modelAttack; 
 
 	// ワールド変換の初期化
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;
+
+	worldTransformAttack_.Initialize();
+	worldTransformAttack_.translation_ = worldTransform_.translation_;
+	worldTransformAttack_.rotation_ = worldTransform_.rotation_;
 
 	camera_ = camera;
 
@@ -25,6 +30,84 @@ void Player::Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera
 }
 
 void Player::Update() {
+
+	if (behaviorRequest_ != Behavior::kUnknown) {
+		// 振るまいを変更する
+		behavior_ = behaviorRequest_;
+		// 各振るまいごとの初期化を実行
+		switch (behavior_) {
+		case Behavior::kRoot:
+
+			BehaviorRootInitialize();
+
+			break;
+
+		case Behavior::kAttack:
+
+			BehaviorAttackInitialize();
+
+			break;
+		}
+
+		// 振るまいリクエストをリセット
+		behaviorRequest_ = Behavior::kUnknown;
+	}
+
+	switch (behavior_) {
+	case Behavior::kRoot:
+	default:
+		BehaviorRootUpdate();
+
+		break;
+
+	case Behavior::kAttack:
+
+		BehaviorAttackUpdate();
+
+		break;
+	}
+
+	// アフィン変換とバッファ転送を一括でする関数
+	math_.WorldTransformUpdate(worldTransform_);
+}
+
+void Player::Draw() {
+
+	// 3Dモデルを描画
+	model_->Draw(worldTransform_, *camera_);
+}
+
+KamataEngine::Vector3 Player::GetWorldPosition() {
+
+	// ワールド座標を入れる変数
+	Vector3 worldPos;
+
+	// ワールド行列の平行移動成分を取得(ワールド座標)
+	worldPos.x = worldTransform_.matWorld_.m[3][0];
+	worldPos.y = worldTransform_.matWorld_.m[3][1];
+	worldPos.z = worldTransform_.matWorld_.m[3][2];
+
+	return worldPos;
+}
+
+AABB Player::GetAABB() {
+	KamataEngine::Vector3 worldPos = GetWorldPosition();
+
+	AABB aabb;
+
+	aabb.min = {worldPos.x - kWidth / 2.0f, worldPos.y - kHeight / 2.0f, worldPos.z - kWidth / 2.0f};
+	aabb.max = {worldPos.x + kWidth / 2.0f, worldPos.y + kHeight / 2.0f, worldPos.z + kWidth / 2.0f};
+
+	return aabb;
+}
+
+void Player::OnCollision(const Enemy* enemy) {
+	(void)enemy;
+	// 当たったら死ぬ
+	isDead_ = true;
+}
+
+void Player::BehaviorRootUpdate() {
 
 	// 移動入力
 	InputMove();
@@ -71,44 +154,112 @@ void Player::Update() {
 		worldTransform_.rotation_.y = math_.easeInOut(t, turnFirstRotationY_, destinationRotationY);
 	}
 
-	// アフィン変換とバッファ転送を一括でする関数
-	math_.WorldTransformUpdate(worldTransform_);
+	// 攻撃キーを押したら
+	if (Input::GetInstance()->TriggerKey(DIK_R)) {
+		// 攻撃ビヘイビアをリクエスト
+		behaviorRequest_ = Behavior::kAttack;
+	}
 }
 
-void Player::Draw() {
+void Player::BehaviorAttackUpdate() {
 
-	// 3Dモデルを描画
-	model_->Draw(worldTransform_, *camera_);
+	const Vector3 attackVelocity = {0.8f, 0.0f, 0.0f};
+
+	// 攻撃動作用の速度
+	Vector3 velocity{};
+
+	// 予備動作
+	attackParameter_++;
+	float t;
+
+	switch (attackPhase_) {
+		// 溜め動作
+	case AttackPhase::kAnticipation:
+	default: {
+		velocity = {};
+		t = static_cast<float>(attackParameter_) / kAnticipationTime;
+		worldTransform_.scale_.z = math_.easeInOut(1.0f, 0.3f, t);
+		worldTransform_.scale_.y = math_.easeInOut(1.0f, 1.6f, t);
+		// 前進動作へ移行
+		if (attackParameter_ >= kAnticipationTime) {
+			attackPhase_ = AttackPhase::kAction;
+			attackParameter_ = 0; // カウンターをリセット
+		}
+
+		break;
+	}
+		// 突進動作
+	case AttackPhase::kAction:
+		if (lrDirection_ == LRDirection::kRight) {
+			velocity += attackVelocity;
+		} else {
+			velocity -= attackVelocity;
+		}
+
+		t = static_cast<float>(attackParameter_) / kActionTime;
+		worldTransform_.scale_.z = math_.easeInOut(0.3f, 1.3f, t);
+		worldTransform_.scale_.y = math_.easeInOut(1.6f, 0.7f, t);
+		// 余韻動作へ移行
+		if (attackParameter_ >= kActionTime) {
+			attackPhase_ = AttackPhase::kRecovery;
+			attackParameter_ = 0; // カウンターをリセット
+		}
+
+		break;
+
+		// 余韻動作
+	case AttackPhase::kRecovery:
+		velocity = {};
+		t = static_cast<float>(attackParameter_) / kRecoveryTime;
+		worldTransform_.scale_.z = math_.easeInOut(1.3f, 1.0f, t);
+		worldTransform_.scale_.y = math_.easeInOut(0.7f, 1.0f, t);
+		// 通常行動に戻る
+		if (attackParameter_ >= kRecoveryTime) {
+			behaviorRequest_ = Behavior::kRoot;
+		}
+
+		break;
+	}
+
+	// 衝突情報を初期化
+	CollisionMapInfo collisionMapInfo = {};
+	collisionMapInfo.move = velocity;
+	collisionMapInfo.landing = false;
+	collisionMapInfo.hitWall = false;
+
+	// マップ衝突チェック
+	CheckMapCollision(collisionMapInfo);
+
+	// 移動
+	worldTransform_.translation_ += collisionMapInfo.move;
+
+	if (turnTimer_ > 0.0f) {
+		// タイマーを進める
+		turnTimer_ = std::max(turnTimer_ - (1.0f / 60.0f), 0.0f);
+
+		float destinationRotationYTable[] = {std::numbers::pi_v<float> / 2.0f, std::numbers::pi_v<float> * 3.0f / 2.0f};
+
+		float destinationRotationY = destinationRotationYTable[static_cast<uint32_t>(lrDirection_)];
+
+		worldTransform_.rotation_.y = math_.easeInOut(destinationRotationY, turnFirstRotationY_, turnTimer_ / kTimeTurn);
+	}
+
+	//トランスフォームの値をコピー
+	worldTransformAttack_.translation_ = worldTransform_.translation_;
+	worldTransformAttack_.rotation_ = worldTransform_.rotation_;
+
 }
 
-KamataEngine::Vector3 Player::GetWorldPosition() {
+void Player::BehaviorRootInitialize() {}
 
-	// ワールド座標を入れる変数
-	Vector3 worldPos;
+void Player::BehaviorAttackInitialize() {
+	// カウンター初期化
+	attackParameter_ = 0;
 
-	// ワールド行列の平行移動成分を取得(ワールド座標)
-	worldPos.x = worldTransform_.matWorld_.m[3][0];
-	worldPos.y = worldTransform_.matWorld_.m[3][1];
-	worldPos.z = worldTransform_.matWorld_.m[3][2];
+	velocity_ = {};
 
-	return worldPos;
-}
-
-AABB Player::GetAABB() {
-	KamataEngine::Vector3 worldPos = GetWorldPosition();
-
-	AABB aabb;
-
-	aabb.min = {worldPos.x - kWidth / 2.0f, worldPos.y - kHeight / 2.0f, worldPos.z - kWidth / 2.0f};
-	aabb.max = {worldPos.x + kWidth / 2.0f, worldPos.y + kHeight / 2.0f, worldPos.z + kWidth / 2.0f};
-
-	return aabb;
-}
-
-void Player::OnCollision(const Enemy* enemy) {
-	(void)enemy;
-	//当たったら死ぬ
-	isDead_ = true;
+	// 溜めフェーズから始める
+	attackPhase_ = AttackPhase::kAnticipation;
 }
 
 void Player::InputMove() {

@@ -2,13 +2,13 @@
 #include "CameraController.h"
 #include "DeathParticles.h"
 #include "Enemy.h"
+#include "Fade.h"
 #include "KamataEngine.h"
 #include "MapChipFiled.h"
 #include "Player.h"
 #include "Skydome.h"
 #include "math.h"
 #include <vector>
-#include "Fade.h"
 
 // ゲームシーン
 class GameScene {
@@ -35,19 +35,18 @@ public:
 	bool IsFinished() const { return finished_; };
 
 private:
-
 	// ゲームのフェーズ
 	enum class Phase {
-		kFadeIn,//フェードイン
-		kPlay,  // ゲームプレイ
-		kDeath, // デス演出
-		kFadeOut,//フェードアウト
+		kFadeIn,  // フェードイン
+		kPlay,    // ゲームプレイ
+		kDeath,   // デス演出
+		kFadeOut, // フェードアウト
 	};
 
-	//ゲームの現在フェーズ
+	// ゲームの現在フェーズ
 	Phase phase_;
 
-	//フェーズの切り替え関数
+	// フェーズの切り替え関数
 	void ChangePhase();
 
 	// テクスチャハンドル
@@ -107,6 +106,9 @@ private:
 	// 終了フラグ
 	bool finished_ = false;
 
-	//フェード
+	// フェード
 	Fade* fade_ = nullptr;
+
+	// プレイヤー攻撃用モデル
+	KamataEngine::Model* modelAttack_ = nullptr;
 };
