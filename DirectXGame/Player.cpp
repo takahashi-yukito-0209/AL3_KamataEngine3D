@@ -13,7 +13,7 @@ void Player::Initialize(KamataEngine::Model* model, KamataEngine::Model* modelAt
 
 	// 引数として受け取ったデータをメンバ変数に記録する
 	model_ = model;
-	modelAttack_ = modelAttack; 
+	modelAttack_ = modelAttack;
 
 	// ワールド変換の初期化
 	worldTransform_.Initialize();
@@ -75,6 +75,7 @@ void Player::Draw() {
 
 	// 3Dモデルを描画
 	model_->Draw(worldTransform_, *camera_);
+	modelAttack_->Draw(worldTransform_, *camera_);
 }
 
 KamataEngine::Vector3 Player::GetWorldPosition() {
@@ -244,10 +245,9 @@ void Player::BehaviorAttackUpdate() {
 		worldTransform_.rotation_.y = math_.easeInOut(destinationRotationY, turnFirstRotationY_, turnTimer_ / kTimeTurn);
 	}
 
-	//トランスフォームの値をコピー
+	// トランスフォームの値をコピー
 	worldTransformAttack_.translation_ = worldTransform_.translation_;
 	worldTransformAttack_.rotation_ = worldTransform_.rotation_;
-
 }
 
 void Player::BehaviorRootInitialize() {}

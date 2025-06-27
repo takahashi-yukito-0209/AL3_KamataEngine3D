@@ -329,7 +329,6 @@ void GameScene::Draw() {
 	// 自キャラの描画
 	if (!player_->IsDead()) {
 		player_->Draw();
-		modelAttack_->Draw(player_->GetWorldTransform(), camera_);
 	}
 
 	// ブロックの描画
