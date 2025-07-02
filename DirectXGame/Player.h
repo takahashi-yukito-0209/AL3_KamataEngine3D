@@ -67,6 +67,9 @@ public:
 	// デスフラグ
 	bool IsDead() const { return isDead_; }
 
+	//攻撃中かの判定
+	bool IsAttack() const { return behavior_ == Behavior::kAttack; }
+
 	// ---setter---
 
 	// MapChipField

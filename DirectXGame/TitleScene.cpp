@@ -44,13 +44,18 @@ void TitleScene::Update() {
 		if (fade_->IsFinished()) {
 			phase_ = Phase::kMain;
 		}
+
 		break;
+
 	case Phase::kMain:
+
 		if (Input::GetInstance()->PushKey(DIK_SPACE)) {
 			fade_->Start(Fade::Status::FadeOut, 1.0f);
 			phase_ = Phase::kFadeOut;
 		}
+
 		break;
+
 	case Phase::kFadeOut:
 		fade_->Update();
 		// タイトルシーンの終了条件
@@ -58,6 +63,7 @@ void TitleScene::Update() {
 		if (fade_->IsFinished()) {
 			finished_ = true;
 		}
+
 		break;
 	}
 

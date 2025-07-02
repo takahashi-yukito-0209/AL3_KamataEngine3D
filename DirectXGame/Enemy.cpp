@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "Enemy.h"
+#include "Player.h"
 #include <algorithm>
 #include <cassert>
 #include <numbers>
@@ -28,14 +29,41 @@ void Enemy::Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera,
 
 void Enemy::Update() {
 
-	// 移動
-	worldTransform_.translation_ += velocity_;
+	if (behaviorRequest_ != Behavior::kUnknown) {
+		// 振るまいを変更する
+		behavior_ = behaviorRequest_;
+		// 各振るまいごとの初期化を実行
+		switch (behavior_) {
+		case Behavior::kRoot:
 
-	// タイマーを加算
-	walkTimer_ += 1.0f / 60.0f;
+			BehaviorRootInitialize();
 
-	// 回転アニメーション
-	worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime);
+			break;
+
+		case Behavior::kDeath:
+
+			BehaviorDeathInitialize();
+
+			break;
+		}
+
+		// 振るまいリクエストをリセット
+		behaviorRequest_ = Behavior::kUnknown;
+	}
+
+	switch (behavior_) {
+	case Behavior::kRoot:
+	default:
+		BehaviorRootUpdate();
+
+		break;
+
+	case Behavior::kDeath:
+
+		BehaviorDeathUpdate();
+
+		break;
+	}
 
 	// アフィン変換とバッファ転送を一括でする関数
 	math_.WorldTransformUpdate(worldTransform_);
@@ -69,4 +97,51 @@ AABB Enemy::GetAABB() {
 	return aabb;
 }
 
-void Enemy::OnCollision(const Player* player) { (void)player; }
+void Enemy::OnCollision(const Player* player) {
+	(void)player;
+
+	if (behavior_ == Behavior::kDeath) {
+		return;
+	}
+
+	// プレイヤーが攻撃中なら死ぬ
+	if (player->IsAttack()) {
+		// 敵の振る舞いをデス演出に変更
+		behaviorRequest_ = Behavior::kDeath;
+
+		// コリジョン無効フラグを立てる
+		isCollisionDisabled_ = true;
+	}
+}
+
+void Enemy::BehaviorRootUpdate() {
+	// 移動
+	worldTransform_.translation_ += velocity_;
+
+	// タイマーを加算
+	walkTimer_ += 1.0f / 60.0f;
+
+	// 回転アニメーション
+	worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime);
+}
+
+void Enemy::BehaviorDeathUpdate() {
+
+	// アニメーションのタイマーを加算する
+	deathTimer_ += 1.0f / 60.0f;
+
+	// Y軸周りの回転角をイージングで変化させる
+	worldTransform_.rotation_.y = math_.easeInOut(deathTimer_, kDeathMotionAngleStart, kDeathMotionAngleEnd);
+
+	// X軸周りの回転角をイージングで変化させる
+	worldTransform_.rotation_.x = math_.easeInOut(deathTimer_, kDeathMotionAngleStart, kDeathMotionAngleEnd);
+
+	// アニメーションのタイマーが一定時間に達したら
+	if (deathTimer_ >= 1.0f) {
+		isDead_ = true;
+	}
+}
+
+void Enemy::BehaviorRootInitialize() {}
+
+void Enemy::BehaviorDeathInitialize() {}

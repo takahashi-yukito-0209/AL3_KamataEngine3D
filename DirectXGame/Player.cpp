@@ -89,7 +89,6 @@ void Player::Draw() {
 
 		break;
 	}
-	
 }
 
 KamataEngine::Vector3 Player::GetWorldPosition() {
@@ -119,7 +118,9 @@ AABB Player::GetAABB() {
 void Player::OnCollision(const Enemy* enemy) {
 	(void)enemy;
 	// 当たったら死ぬ
-	isDead_ = true;
+	if (!IsAttack()) {
+		isDead_ = true;
+	}
 }
 
 void Player::BehaviorRootUpdate() {
