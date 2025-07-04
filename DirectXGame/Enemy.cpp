@@ -1,9 +1,12 @@
 #define NOMINMAX
 #include "Enemy.h"
+#include "GameScene.h"
 #include "Player.h"
 #include <algorithm>
 #include <cassert>
 #include <numbers>
+
+using namespace KamataEngine;
 
 void Enemy::Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, const KamataEngine::Vector3& position) {
 	// NULLポインタチェック
@@ -108,6 +111,12 @@ void Enemy::OnCollision(const Player* player) {
 	if (player->IsAttack()) {
 		// 敵の振る舞いをデス演出に変更
 		behaviorRequest_ = Behavior::kDeath;
+		
+		if (gameScene_) {
+			// 敵と自キャラの中間位置にエフェクトを生成
+			Vector3 effectPos = (worldTransform_.translation_ + player->GetWorldTransform().translation_) / 2.0f;
+			gameScene_->CreateHitEffect(effectPos);
+		}
 
 		// コリジョン無効フラグを立てる
 		isCollisionDisabled_ = true;

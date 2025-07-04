@@ -4,6 +4,7 @@
 
 // 前方宣言
 class Player;
+class GameScene;
 
 class Enemy {
 public:
@@ -108,5 +109,7 @@ private:
 
 	//無効フラグ
 	bool isCollisionDisabled_ = false;
+
+	GameScene* gameScene_;
 
 };

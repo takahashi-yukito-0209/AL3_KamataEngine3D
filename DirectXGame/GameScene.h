@@ -3,6 +3,7 @@
 #include "DeathParticles.h"
 #include "Enemy.h"
 #include "Fade.h"
+#include "HitEffect.h"
 #include "KamataEngine.h"
 #include "MapChipFiled.h"
 #include "Player.h"
@@ -24,6 +25,9 @@ public:
 
 	// 表示ブロックの生成
 	void GenerateBlocks();
+
+	//エフェクトを生成
+	void CreateHitEffect(const KamataEngine::Vector3 position);
 
 	// デストラクタ
 	~GameScene();
@@ -111,4 +115,11 @@ private:
 
 	// プレイヤー攻撃用モデル
 	KamataEngine::Model* modelAttack_ = nullptr;
+
+	//ヒットエフェクト
+	std::list<HitEffect*> hitEffects_;
+
+	//ヒットエフェクト用モデル
+	KamataEngine::Model* modelEffect_ = nullptr;
+
 };

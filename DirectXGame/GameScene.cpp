@@ -92,6 +92,11 @@ void GameScene::Initialize() {
 	fade_ = new Fade();
 	fade_->Initialize();
 	fade_->Start(Fade::Status::FadeIn, 1.0f);
+
+	// ヒットエフェクト用モデルの読み込み
+	modelEffect_ = Model::CreateFromOBJ("plane", true);
+	HitEffect::SetModel(modelEffect_);
+	HitEffect::SetCamera(&camera_);
 }
 
 void GameScene::Update() {
@@ -173,6 +178,11 @@ void GameScene::Update() {
 		// 敵更新
 		for (Enemy* enemy : enemies_) {
 			enemy->Update();
+		}
+
+		// ヒットエフェクト描画
+		for (HitEffect* hitEffect : hitEffects_) {
+			hitEffect->Update();
 		}
 
 #ifdef _DEBUG
@@ -360,6 +370,11 @@ void GameScene::Draw() {
 		deathParticles_->Draw();
 	}
 
+	//ヒットエフェクト描画
+	for (HitEffect* hitEffect : hitEffects_) {
+		hitEffect->Draw();
+	}
+
 	// フェードの描画
 	fade_->Draw();
 
@@ -390,6 +405,11 @@ void GameScene::GenerateBlocks() {
 			}
 		}
 	}
+}
+
+void GameScene::CreateHitEffect(const KamataEngine::Vector3 position) { 
+	HitEffect* newHitEffect = HitEffect::Create(position);
+	hitEffects_.push_back(newHitEffect);
 }
 
 GameScene::~GameScene() {
@@ -427,6 +447,15 @@ GameScene::~GameScene() {
 	// デスパーティクルデータ解放
 	delete deathParticles_;
 	delete modelDeathParticles_;
+
+	//ヒットエフェクトの解放
+	for (HitEffect* hitEffect : hitEffects_) {
+		delete hitEffect;
+	}
+
+	//ヒットエフェクト用モデルの解放
+	delete modelEffect_;
+
 }
 
 void GameScene::CheckAllCollisions() {
