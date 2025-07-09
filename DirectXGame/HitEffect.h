@@ -36,4 +36,10 @@ private:
 
 	//円のワールドトランスフォーム
 	KamataEngine::WorldTransform circleWorldTransform_;
+
+	// 楕円エフェクトの数
+	static const inline uint32_t kellipseEffectNum = 2;
+
+	//楕円のワールドトランスフォーム
+	std::array<KamataEngine::WorldTransform, kellipseEffectNum> ellipseWorldTransforms_;
 };

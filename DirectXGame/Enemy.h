@@ -51,6 +51,9 @@ public:
 	// デス演出初期化
 	void BehaviorDeathInitialize();
 
+	//ゲームシーンセッター
+	void SetGameScene(GameScene* gameScene) { gameScene_ = gameScene; }
+
 private:
 	// ワールド変換データ
 	KamataEngine::WorldTransform worldTransform_;
@@ -110,6 +113,6 @@ private:
 	//無効フラグ
 	bool isCollisionDisabled_ = false;
 
-	GameScene* gameScene_;
+	GameScene* gameScene_ = nullptr;
 
 };

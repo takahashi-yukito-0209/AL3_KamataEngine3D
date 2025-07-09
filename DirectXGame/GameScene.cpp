@@ -79,6 +79,8 @@ void GameScene::Initialize() {
 
 		newEnemy->Initialize(modelEnemy_, &camera_, enemyPosition);
 
+		newEnemy->SetGameScene(this);
+
 		enemies_.push_back(newEnemy);
 	}
 

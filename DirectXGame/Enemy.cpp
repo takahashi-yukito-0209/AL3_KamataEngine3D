@@ -111,12 +111,10 @@ void Enemy::OnCollision(const Player* player) {
 	if (player->IsAttack()) {
 		// 敵の振る舞いをデス演出に変更
 		behaviorRequest_ = Behavior::kDeath;
-		
-		if (gameScene_) {
-			// 敵と自キャラの中間位置にエフェクトを生成
-			Vector3 effectPos = (worldTransform_.translation_ + player->GetWorldTransform().translation_) / 2.0f;
-			gameScene_->CreateHitEffect(effectPos);
-		}
+
+		// 敵と自キャラの中間位置にエフェクトを生成
+		Vector3 effectPos = (GetWorldPosition() + player->GetWorldPosition()) / 2.0f;
+		gameScene_->CreateHitEffect(effectPos);
 
 		// コリジョン無効フラグを立てる
 		isCollisionDisabled_ = true;
