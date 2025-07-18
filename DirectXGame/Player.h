@@ -225,4 +225,6 @@ private:
 	// プレイヤー攻撃用モデル
 	KamataEngine::Model* modelAttack_ = nullptr;
 
+	KamataEngine::ObjectColor objectColor_;
+
 };

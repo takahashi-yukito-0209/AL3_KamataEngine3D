@@ -343,10 +343,6 @@ void GameScene::Draw() {
 	// 3Dモデル描画前処理
 	Model::PreDraw(dxCommon->GetCommandList());
 
-	// 自キャラの描画
-	if (!player_->IsDead()) {
-		player_->Draw();
-	}
 
 	// ブロックの描画
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
@@ -375,6 +371,11 @@ void GameScene::Draw() {
 	//ヒットエフェクト描画
 	for (HitEffect* hitEffect : hitEffects_) {
 		hitEffect->Draw();
+	}
+
+	// 自キャラの描画
+	if (!player_->IsDead()) {
+		player_->Draw();
 	}
 
 	// フェードの描画
