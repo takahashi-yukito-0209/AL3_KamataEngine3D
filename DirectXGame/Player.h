@@ -1,6 +1,7 @@
 #pragma once
 #include "KamataEngine.h"
 #include "Math.h"
+#include "input/Input.h"
 
 class Player {
 public:
@@ -25,5 +26,10 @@ private:
 
 	// カメラ
 	KamataEngine::Camera* camera_ = nullptr;
+
+	Math math_;
+
+	//キーボード入力
+	KamataEngine::Input* input_ = nullptr;
 
 };

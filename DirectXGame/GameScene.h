@@ -30,4 +30,13 @@ private:
 
 	// カメラ
 	KamataEngine::Camera camera_;
+
+	// キーボード入力
+	KamataEngine::Input* input_ = nullptr;
+
+	//デバックカメラ有効
+	bool isDebugCameraActive_ = false;
+
+	//デバッグカメラ
+	KamataEngine::DebugCamera* debugCamera_ = nullptr;
 };
