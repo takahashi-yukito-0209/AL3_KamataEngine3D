@@ -118,6 +118,7 @@ void GameScene::Initialize() {
 		enemies_.push_back(newEnemy);
 	}
 
+
 	// 仮生成処理
 	modelDeathParticles_ = Model::CreateFromOBJ("deathParticle", true);
 
