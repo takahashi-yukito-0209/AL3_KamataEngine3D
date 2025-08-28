@@ -26,7 +26,7 @@ public:
 	// 表示ブロックの生成
 	void GenerateBlocks();
 
-	//エフェクトを生成
+	// エフェクトを生成
 	void CreateHitEffect(const KamataEngine::Vector3 position);
 
 	// デストラクタ
@@ -37,6 +37,12 @@ public:
 
 	// 終了フラグのgetter
 	bool IsFinished() const { return finished_; };
+
+	// クリア判定
+	bool IsCleared() const { return cleared_; }
+
+	// ゲームオーバー判定
+	bool IsGameOver() const { return gameOver_; }
 
 private:
 	// ゲームのフェーズ
@@ -116,10 +122,18 @@ private:
 	// プレイヤー攻撃用モデル
 	KamataEngine::Model* modelAttack_ = nullptr;
 
-	//ヒットエフェクト
+	// ヒットエフェクト
 	std::list<HitEffect*> hitEffects_;
 
-	//ヒットエフェクト用モデル
+	// ヒットエフェクト用モデル
 	KamataEngine::Model* modelEffect_ = nullptr;
 
+	// クリアフラグ
+	bool cleared_ = false;
+
+	// ゲームオーバーフラグ
+	bool gameOver_ = false;
+
+	int defeatedEnemiesCount_ = 0;                        // 倒した敵の数
+	static inline const int kRequiredDefeatedEnemies = 3; // クリアに必要な数
 };

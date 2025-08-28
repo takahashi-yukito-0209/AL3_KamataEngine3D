@@ -1,9 +1,9 @@
 #pragma once
 #include "Fade.h"
 #include "KamataEngine.h"
-#include "math.h"
+#include <base\TextureManager.h>
 
-// クリアシーン
+// クリアシーン（Sprite描画版）
 class ClearScene {
 public:
 	// 初期化
@@ -14,6 +14,9 @@ public:
 
 	// 描画
 	void Draw();
+
+	// デストラクタ
+	~ClearScene();
 
 	// 終了フラグ
 	bool IsFinished() const { return finished_; }
@@ -40,9 +43,7 @@ private:
 	// カメラ
 	KamataEngine::Camera camera_;
 
-	// 文字モデル（"CLEAR" 表示用）
-	KamataEngine::Model* modelText_ = nullptr;
+	// CLEARスプライト
+	KamataEngine::Sprite* clearSprite_ = nullptr;
 
-	// 自作数学関数
-	Math math_;
 };

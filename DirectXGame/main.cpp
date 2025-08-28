@@ -42,8 +42,20 @@ void ChangeScene() {
 		break;
 
 	case Scene::kGame:
-		if (gameScene->IsFinished()) {
-			// シーン変更
+		if (gameScene->IsGameOver()) {
+			// プレイヤー死亡 → タイトルに戻す
+			scene = Scene::kTitle;
+
+			// 旧シーンの解放
+			delete gameScene;
+			gameScene = nullptr;
+
+			// 新シーンの生成と初期化
+			titleScene = new TitleScene();
+			titleScene->Initialize();
+
+		} else if (gameScene->IsCleared()) {
+			// ゲームクリア → クリアシーンへ
 			scene = Scene::kClear;
 
 			// 旧シーンの解放

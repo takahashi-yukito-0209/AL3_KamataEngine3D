@@ -1,5 +1,6 @@
 #include "GameScene.h"
 #include "PauseMenu.h"
+#include <random>
 
 PauseMenu* pauseMenu_ = nullptr;
 
@@ -73,17 +74,47 @@ void GameScene::Initialize() {
 	// 敵キャラ3Dモデルの生成
 	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
 
-	// 敵の生成と座標設定、初期化
-	for (int32_t i = 0; i < 2; ++i) {
+	std::random_device rd;
+	std::mt19937 mt(rd());
+
+	// マップサイズ取得
+	int width = mapChipField_->GetNumBlockHorizontal();
+	int height = mapChipField_->GetNumBlockVirtical();
+
+	// 外周を1ブロック除外
+	int margin = 1;
+
+	// 生成可能なマスのリストを作る
+	std::vector<std::pair<int, int>> spawnablePositions;
+	for (int y = margin; y < height - margin; ++y) {
+		for (int x = margin; x < width - margin; ++x) {
+			// 空いているブロックなら追加
+			if (mapChipField_->GetMapChipTypeByIndex(x, y) == MapChipType::kBlank) {
+				spawnablePositions.emplace_back(x, y);
+			}
+		}
+	}
+
+	// 敵を生成したい数
+	int numEnemies = 18;
+	std::uniform_int_distribution<int> dist(0, (int)spawnablePositions.size() - 1);
+
+	for (int i = 0; i < numEnemies; ++i) {
+		if (spawnablePositions.empty())
+			break;
+
+		// ランダムに1つ選ぶ
+		int index = dist(mt);
+		auto [xIndex, yIndex] = spawnablePositions[index];
+
+		// 選んだ座標はリストから削除して二重生成防止
+		spawnablePositions.erase(spawnablePositions.begin() + index);
 
 		Enemy* newEnemy = new Enemy();
-
-		Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(14 + i * 2, 16);
+		Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(xIndex, yIndex);
 
 		newEnemy->Initialize(modelEnemy_, &camera_, enemyPosition);
-
 		newEnemy->SetGameScene(this);
-
 		enemies_.push_back(newEnemy);
 	}
 
@@ -319,6 +350,8 @@ void GameScene::Update() {
 		fade_->Update();
 		if (fade_->IsFinished()) {
 			finished_ = true;
+			// ゲームオーバーフラグを立てる
+			gameOver_ = true;
 		}
 
 		// スカイドームの更新
@@ -351,9 +384,16 @@ void GameScene::Update() {
 	}
 
 	// デスフラグの立った敵を削除
-	enemies_.remove_if([](Enemy* enemy) {
+	enemies_.remove_if([this](Enemy* enemy) {
 		if (enemy->IsDead()) {
 			delete enemy;
+			// 倒した数をカウント
+			defeatedEnemiesCount_++;
+
+			// 3体倒したらクリアフラグ
+			if (defeatedEnemiesCount_ >= kRequiredDefeatedEnemies) {
+				this->cleared_ = true;
+			}
 			return true;
 		}
 		return false;

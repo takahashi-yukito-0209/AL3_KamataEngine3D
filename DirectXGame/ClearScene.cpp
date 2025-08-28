@@ -1,5 +1,4 @@
 #include "ClearScene.h"
-
 using namespace KamataEngine;
 
 void ClearScene::Initialize() {
@@ -11,8 +10,9 @@ void ClearScene::Initialize() {
 	fade_->Initialize();
 	fade_->Start(Fade::Status::FadeIn, 1.0f);
 
-	// 文字モデル（"CLEAR"）生成
-	modelText_ = Model::CreateFromOBJ("clear_text", true);
+	// CLEARスプライト生成
+	uint32_t clearHandle = TextureManager::Load("clear_text.png");
+	clearSprite_ = Sprite::Create(clearHandle, {0.0f, 0.0f});                      // 適宜調整
 
 	// 初期フェーズ
 	phase_ = Phase::kFadeIn;
@@ -45,30 +45,29 @@ void ClearScene::Update() {
 		}
 		break;
 	}
-
-	// カメラ行列更新
-	camera_.UpdateMatrix();
 }
 
 void ClearScene::Draw() {
-	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
-	// 3Dモデル描画前処理
-	Model::PreDraw(dxCommon->GetCommandList());
+	// --- スプライト描画開始 ---
+	Sprite::PreDraw(DirectXCommon::GetInstance()->GetCommandList());
 
-	// "CLEAR"文字描画
-	if (modelText_) {
-		KamataEngine::WorldTransform worldTransform;
-		worldTransform.Initialize();
-		worldTransform.translation_ = {0.0f, 5.0f, 0.0f}; // 適宜調整
-		modelText_->Draw(worldTransform, camera_);
+
+	// CLEAR文字描画
+	if (clearSprite_) {
+		clearSprite_->Draw();
 	}
+
+	// --- スプライト描画終了 ---
+	Sprite::PostDraw();
 
 	// フェード描画
 	if (fade_) {
 		fade_->Draw();
 	}
+}
 
-	// 3Dモデル描画後処理
-	Model::PostDraw();
+ClearScene::~ClearScene() {
+	delete fade_;
+	delete clearSprite_;
 }
