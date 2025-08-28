@@ -52,4 +52,7 @@ private:
 
 	//現在のフェーズ
 	Phase phase_ = Phase::kFadeIn;
+
+	// 操作ガイドスプライト
+	KamataEngine::Sprite* operationGuide_ = nullptr;
 };

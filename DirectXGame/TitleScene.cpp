@@ -1,5 +1,5 @@
-#include <numbers>
 #include "TitleScene.h"
+#include <numbers>
 
 using namespace KamataEngine;
 
@@ -28,10 +28,15 @@ void TitleScene::Initialize() {
 
 	worldTransformPlayer_.translation_.y = -10.0f;
 
-	//フェード
+	// フェード
 	fade_ = new Fade();
 	fade_->Initialize();
 	fade_->Start(Fade::Status::FadeIn, 1.0f);
+
+	// 操作ガイドスプライト生成（右下に表示）
+	uint32_t guideHandle = TextureManager::Load("operation_guide.png");
+	operationGuide_ = Sprite::Create(guideHandle, {1000.0f, 460.0f});
+	operationGuide_->SetSize({250.0f, 250.0f});
 }
 
 void TitleScene::Update() {
@@ -94,14 +99,26 @@ void TitleScene::Draw() {
 	modelTitle_->Draw(worldTransformTitle_, camera_);
 	modelPlayer_->Draw(worldTransformPlayer_, camera_);
 
-	//フェード
+	// フェード
 	fade_->Draw();
 
 	Model::PostDraw();
+
+	// --- スプライト描画開始 ---
+	Sprite::PreDraw(DirectXCommon::GetInstance()->GetCommandList());
+
+	// 操作ガイド描画
+	if (operationGuide_) {
+		operationGuide_->Draw();
+	}
+
+	// --- スプライト描画終了 ---
+	Sprite::PostDraw();
 }
 
-TitleScene::~TitleScene() { 
+TitleScene::~TitleScene() {
 	delete modelPlayer_;
 	delete modelTitle_;
 	delete fade_;
+	delete operationGuide_;
 }
