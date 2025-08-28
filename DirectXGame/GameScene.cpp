@@ -1,4 +1,7 @@
 #include "GameScene.h"
+#include "PauseMenu.h"
+
+PauseMenu* pauseMenu_ = nullptr;
 
 using namespace KamataEngine;
 
@@ -99,12 +102,34 @@ void GameScene::Initialize() {
 	modelEffect_ = Model::CreateFromOBJ("plane", true);
 	HitEffect::SetModel(modelEffect_);
 	HitEffect::SetCamera(&camera_);
+
+	// ポーズメニューの初期化
+	pauseMenu_ = new PauseMenu();
+	pauseMenu_->Initialize();
 }
 
 void GameScene::Update() {
 
 	// フェーズ切り替え
 	ChangePhase();
+
+	// ポーズがアクティブならゲーム更新を止める
+	pauseMenu_->Update();
+	if (pauseMenu_->IsActive()) {
+		PauseMenu::Result result = pauseMenu_->GetResult();
+
+		if (result == PauseMenu::Result::kResume) {
+			// ポーズ解除
+			pauseMenu_->SetActive(false);
+		} else if (result == PauseMenu::Result::kQuit) {
+			// ゲーム終了処理
+			finished_ = true;
+			return; // ゲーム更新を止める
+		} else {
+			// ポーズ中だけど決定はしていない場合は更新を止める
+			return;
+		}
+	}
 
 	switch (phase_) {
 	case Phase::kFadeIn:
@@ -343,7 +368,6 @@ void GameScene::Draw() {
 	// 3Dモデル描画前処理
 	Model::PreDraw(dxCommon->GetCommandList());
 
-
 	// ブロックの描画
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
@@ -368,7 +392,7 @@ void GameScene::Draw() {
 		deathParticles_->Draw();
 	}
 
-	//ヒットエフェクト描画
+	// ヒットエフェクト描画
 	for (HitEffect* hitEffect : hitEffects_) {
 		hitEffect->Draw();
 	}
@@ -383,6 +407,16 @@ void GameScene::Draw() {
 
 	// 3Dモデル描画後処理
 	Model::PostDraw();
+
+	// --- スプライト描画開始 ---
+	Sprite::PreDraw(DirectXCommon::GetInstance()->GetCommandList());
+
+
+	 // ポーズメニュー描画
+	pauseMenu_->Draw();
+
+	// --- スプライト描画終了 ---
+	Sprite::PostDraw();
 }
 
 void GameScene::GenerateBlocks() {
@@ -410,7 +444,7 @@ void GameScene::GenerateBlocks() {
 	}
 }
 
-void GameScene::CreateHitEffect(const KamataEngine::Vector3 position) { 
+void GameScene::CreateHitEffect(const KamataEngine::Vector3 position) {
 	HitEffect* newHitEffect = HitEffect::Create(position);
 	hitEffects_.push_back(newHitEffect);
 }
@@ -451,14 +485,13 @@ GameScene::~GameScene() {
 	delete deathParticles_;
 	delete modelDeathParticles_;
 
-	//ヒットエフェクトの解放
+	// ヒットエフェクトの解放
 	for (HitEffect* hitEffect : hitEffects_) {
 		delete hitEffect;
 	}
 
-	//ヒットエフェクト用モデルの解放
+	// ヒットエフェクト用モデルの解放
 	delete modelEffect_;
-
 }
 
 void GameScene::CheckAllCollisions() {
