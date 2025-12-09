@@ -59,6 +59,9 @@ public:
 	// ワールド座標を取得
 	KamataEngine::Vector3 GetWorldPosition() const;
 
+	// ワールド座標を設定
+	void SetPosition(const KamataEngine::Vector3& position);
+
 	// AABB取得関数
 	AABB GetAABB();
 
@@ -114,7 +117,9 @@ private:
     static inline const float kAcceleration = 0.06f;
 
 	// 非入力時の摩擦係数
-	static inline const float kAttenuation = 0.05f;
+	// 非入力時の摩擦係数
+	// 慣性を弱めて操作感を良くするため、減衰を強める
+	static inline const float kAttenuation = 0.12f;
 
     // 最大速度
     static inline const float kLimitRunSpeed = 0.22f;
@@ -191,7 +196,8 @@ private:
 	void UpdateOnWall(const CollisionMapInfo& info);
 
 	// 着地時の速度減衰率
-	static inline const float kAttenuationLanding = 0.0f;
+	// 着地後の慣性を抑えるため、若干の減衰を入れる
+	static inline const float kAttenuationLanding = 0.2f;
 
 	// 微小な数値
 	static inline const float kGroundSearchHeight = 0.06f;

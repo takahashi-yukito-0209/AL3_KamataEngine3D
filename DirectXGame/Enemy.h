@@ -42,6 +42,15 @@ public:
 	// 歩行更新
 	void BehaviorRootUpdate();
 
+	// パトロール動作更新
+	void BehaviorPatrolUpdate();
+
+	// 追跡動作更新
+	void BehaviorChaseUpdate();
+
+	// 射撃動作更新
+	void BehaviorShooterUpdate();
+
 	// デス演出更新
 	void BehaviorDeathUpdate();
 
@@ -53,6 +62,22 @@ public:
 
 	//ゲームシーンセッター
 	void SetGameScene(GameScene* gameScene) { gameScene_ = gameScene; }
+
+    // 追跡対象プレイヤー設定
+    // 実装は Enemy.cpp に移動（Player は不完全型のためヘッダ内での使用を避ける）
+    void SetTarget(Player* player);
+
+	// 行動パターン設定
+	enum class Pattern {
+		kPatrol,
+		kChase,
+		kShooter,
+	};
+
+	void SetPattern(Pattern p) { pattern_ = p; }
+
+	// パトロール範囲設定
+	void SetPatrolRange(float leftX, float rightX) { patrolLeftX_ = leftX; patrolRightX_ = rightX; }
 
 private:
 	// ワールド変換データ
@@ -69,6 +94,15 @@ private:
 
 	// 歩行の速さ
 	static inline const float kWalkSpeed = 0.01f;
+
+	// 追跡時の速さ
+	static inline const float kChaseSpeed = 0.035f;
+
+	// 射撃レンジ
+	static inline const float kShootRange = 8.0f;
+
+	// 射撃間隔[秒]
+	static inline const float kShootInterval = 2.0f;
 
 	// 速度
 	KamataEngine::Vector3 velocity_ = {};
@@ -114,5 +148,28 @@ private:
 	bool isCollisionDisabled_ = false;
 
 	GameScene* gameScene_ = nullptr;
+
+	// 追跡対象プレイヤー
+	Player* target_ = nullptr;
+
+	// 行動パターン
+	Pattern pattern_ = Pattern::kPatrol;
+
+	// パトロール用左右境界
+	float patrolLeftX_ = 0.0f;
+	float patrolRightX_ = 0.0f;
+
+	// パトロール時の旋回アニメーション
+	static inline const float kPatrolTurnTime = 0.3f;
+	float patrolTurnTimer_ = 0.0f;
+	float patrolStartRotationY_ = 0.0f;
+	float patrolTargetRotationY_ = 0.0f;
+
+	// 旋回後に適用する欲しい速度
+	float patrolDesiredVelocityX_ = 0.0f;
+
+	// モデルの基準向きオフセット(ラジアン)。モデルが正面向きなので左を向かせるには+pi/2 を指定
+	// 使用するために定数リテラルで指定（std::numbers をヘッダで使うとコンパイル順依存になるため）
+	static inline const float kModelFacingOffsetY = 1.57079632679f; // pi/2
 
 };

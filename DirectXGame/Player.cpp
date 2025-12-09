@@ -29,6 +29,12 @@ void Player::Initialize(KamataEngine::Model* model, KamataEngine::Model* modelAt
 	worldTransform_.rotation_.y = std::numbers::pi_v<float> / 2.0f;
 }
 
+void Player::SetPosition(const KamataEngine::Vector3& position) {
+    worldTransform_.translation_ = position;
+    // 攻撃用ワールド変換も同期
+    worldTransformAttack_.translation_ = position;
+}
+
 void Player::Update() {
 
 	if (behaviorRequest_ != Behavior::kUnknown) {
@@ -216,7 +222,7 @@ void Player::BehaviorRootUpdate() {
 	}
 
 	// 攻撃キーを押したら
-	if (Input::GetInstance()->TriggerKey(DIK_B)) {
+	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
 		// 攻撃ビヘイビアをリクエスト
 		behaviorRequest_ = Behavior::kAttack;
 	}
@@ -414,8 +420,8 @@ void Player::InputMove() {
 			velocity_.x *= (1.0f - kAttenuation);
 		}
 
-		// 一段目ジャンプ
-		if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
+        // 一段目ジャンプ (Wキーまたは上矢印キー)
+        if (Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP)) {
 			velocity_.y = kJumpAcceleration;
 			onGround_ = false;
 			jumpCount_ = 1;
@@ -428,8 +434,8 @@ void Player::InputMove() {
 		// 落下速度制限
 		velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
 
-		// --- 二段ジャンプ ---
-		if (Input::GetInstance()->TriggerKey(DIK_SPACE) && jumpCount_ == 1) {
+        // --- 二段ジャンプ ---
+        if ((Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP)) && jumpCount_ == 1) {
 			velocity_.y = kJumpAcceleration;
 			jumpCount_ = 2;
 

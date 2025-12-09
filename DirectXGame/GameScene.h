@@ -10,6 +10,7 @@
 #include "Skydome.h"
 #include "math.h"
 #include <vector>
+#include <string>
 
 // ゲームシーン
 class GameScene {
@@ -28,6 +29,9 @@ public:
 
 	//エフェクトを生成
 	void CreateHitEffect(const KamataEngine::Vector3 position);
+
+	// 弾生成（公開）
+	void CreateProjectile(const KamataEngine::Vector3 position, const KamataEngine::Vector3 direction);
 
 	// デストラクタ
 	~GameScene();
@@ -95,6 +99,15 @@ private:
 	// マップチップフィールド
 	MapChipField* mapChipField_;
 
+	// ステージファイル一覧（CSVパス）
+	std::vector<std::string> stageFiles_;
+
+	// 現在のステージインデックス
+	int currentStageIndex_ = 0;
+
+	// 指定ステージを読み込む
+	void LoadStage(int stageIndex);
+
 	// カメラコントローラー
 	CameraController* cameraController_;
 
@@ -103,6 +116,8 @@ private:
 
 	// 敵キャラ3Dモデル
 	KamataEngine::Model* modelEnemy_ = nullptr;
+
+
 
 	// デスパーティクル
 	DeathParticles* deathParticles_ = nullptr;

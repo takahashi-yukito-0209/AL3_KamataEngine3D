@@ -50,10 +50,20 @@ private:
 	KamataEngine::Vector3 destination_;
 
     //  座標補間割合
-    static inline const float kInterpolationRate = 0.06f;
+	//  座標補間割合(未使用 - 旧式補間)
+	static inline const float kInterpolationRate = 0.06f;
 
 	//  速度掛け率
-	static inline const float kVelocityBias = 30.0f;
+	// 追従先の速度影響を少し下げて自然にする
+	static inline const float kVelocityBias = 18.0f;
+
+	// カメラ用スプリング定数(振動数)
+	static inline const float kSpringOmega = 12.0f;
+	// 減衰係数(臨界減衰=1.0)
+	static inline const float kSpringDamping = 1.0f;
+
+	// カメラ速度(スプリングでの速度)
+	KamataEngine::Vector3 cameraVelocity_ = {0.0f, 0.0f, 0.0f};
 
 	//  追従対象の各方向へのカメラ移動範囲
 	static inline const Rect targetMargin = {-9.0f, 9.0f, -5.0f, 5.0f};

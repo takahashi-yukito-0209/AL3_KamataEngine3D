@@ -27,10 +27,15 @@ void GameScene::Initialize() {
 	// プレイヤー攻撃用モデルの生成
 	modelAttack_ = Model::CreateFromOBJ("attack_effect", true);
 
-	// マップチップフィールドの生成と初期化
-	mapChipField_ = new MapChipField();
-	mapChipField_->LoadMapChipCsv("Resources/blocks.csv");
-	GenerateBlocks();
+    // マップチップフィールドの生成
+    mapChipField_ = new MapChipField();
+
+    // ステージファイル一覧を用意（必要なCSVをここに追加）
+    stageFiles_.push_back("Resources/blocks.csv");
+    stageFiles_.push_back("Resources/stage2.csv");
+
+    // 初期ステージを読み込む
+    LoadStage(0);
 
 	// 自キャラの生成
 	player_ = new Player();
@@ -73,19 +78,42 @@ void GameScene::Initialize() {
 	// 敵キャラ3Dモデルの生成
 	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
 
-	// 敵の生成と座標設定、初期化
-	for (int32_t i = 0; i < 2; ++i) {
+    // (projectile and enemy attack effect models removed)
 
-		Enemy* newEnemy = new Enemy();
-
-		Vector3 enemyPosition = mapChipField_->GetMapChipPositionByIndex(14 + i * 2, 18);
-
-		newEnemy->Initialize(modelEnemy_, &camera_, enemyPosition);
-
-		newEnemy->SetGameScene(this);
-
-		enemies_.push_back(newEnemy);
-	}
+    // 敵の生成と座標設定、初期化
+    // 1: パトロール
+    {
+        Enemy* e = new Enemy();
+        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(10, 18);
+        e->Initialize(modelEnemy_, &camera_, pos);
+        e->SetGameScene(this);
+        e->SetPattern(Enemy::Pattern::kPatrol);
+        // パトロール範囲を設定（左右2ブロック分）
+        e->SetPatrolRange(pos.x - 2.0f, pos.x + 2.0f);
+        // 設定: patrol 範囲
+        e->SetTarget(player_);
+        enemies_.push_back(e);
+    }
+    // 2: 追跡
+    {
+        Enemy* e = new Enemy();
+        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(14, 18);
+        e->Initialize(modelEnemy_, &camera_, pos);
+        e->SetGameScene(this);
+        e->SetPattern(Enemy::Pattern::kChase);
+        e->SetTarget(player_);
+        enemies_.push_back(e);
+    }
+    // 3: 射手
+    {
+        Enemy* e = new Enemy();
+        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(18, 18);
+        e->Initialize(modelEnemy_, &camera_, pos);
+        e->SetGameScene(this);
+        e->SetPattern(Enemy::Pattern::kShooter);
+        e->SetTarget(player_);
+        enemies_.push_back(e);
+    }
 
 	// 仮生成処理
 	modelDeathParticles_ = Model::CreateFromOBJ("deathParticle", true);
@@ -336,6 +364,9 @@ void GameScene::Update() {
 		}
 		return false;
 	});
+
+	// 死んだプロジェクタイルの削除
+    // projectiles disabled: no runtime projectile management
 }
 
 void GameScene::Draw() {
@@ -375,6 +406,7 @@ void GameScene::Draw() {
 		enemy->Draw();
 	}
 
+
 	// デスパーティクル描画
 	if (deathParticles_) {
 		deathParticles_->Draw();
@@ -402,31 +434,65 @@ void GameScene::GenerateBlocks() {
 	const uint32_t kNumBlockVirtical = mapChipField_->GetNumBlockVirtical();
 	const uint32_t kNumBlockHorizontal = mapChipField_->GetNumBlockHorizontal();
 
-	// 要素数を確保する
-	worldTransformBlocks_.resize(kNumBlockVirtical);
-	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
-		worldTransformBlocks_[i].resize(kNumBlockHorizontal);
-	}
+    // 以前のブロックデータを解放してから再構築
+    for (std::vector<WorldTransform*>& line : worldTransformBlocks_) {
+        for (WorldTransform* wt : line) {
+            delete wt;
+        }
+    }
+    worldTransformBlocks_.clear();
 
-	// キューブの生成
-	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
-		for (uint32_t j = 0; j < kNumBlockHorizontal; j++) {
+    // 要素数を確保する
+    worldTransformBlocks_.resize(kNumBlockVirtical);
+    for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
+        worldTransformBlocks_[i].resize(kNumBlockHorizontal);
+    }
 
-			MapChipType chipType = mapChipField_->GetMapChipTypeByIndex(j, i);
+    // キューブの生成
+    for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
+        for (uint32_t j = 0; j < kNumBlockHorizontal; j++) {
 
-			if (chipType == MapChipType::kBlock || chipType == MapChipType::kGoal) {
-				WorldTransform* worldTransform = new WorldTransform();
-				worldTransform->Initialize();
-				worldTransformBlocks_[i][j] = worldTransform;
-				worldTransformBlocks_[i][j]->translation_ = mapChipField_->GetMapChipPositionByIndex(j, i);
-			}
-		}
-	}
+            MapChipType chipType = mapChipField_->GetMapChipTypeByIndex(j, i);
+
+            if (chipType == MapChipType::kBlock || chipType == MapChipType::kGoal) {
+                WorldTransform* worldTransform = new WorldTransform();
+                worldTransform->Initialize();
+                worldTransformBlocks_[i][j] = worldTransform;
+                worldTransformBlocks_[i][j]->translation_ = mapChipField_->GetMapChipPositionByIndex(j, i);
+            }
+        }
+    }
+}
+
+void GameScene::LoadStage(int stageIndex) {
+    if (stageIndex < 0 || stageIndex >= static_cast<int>(stageFiles_.size())) {
+        return;
+    }
+
+    currentStageIndex_ = stageIndex;
+
+    // CSV読み込み
+    mapChipField_->LoadMapChipCsv(stageFiles_[stageIndex]);
+
+    // ブロック再生成
+    GenerateBlocks();
+
+    // プレイヤーと敵の初期化位置はCSVに依存するため、簡易的にプレイヤーを最初のブロック近辺に配置
+    if (player_) {
+        // 仮として(2,18)の位置を使用
+        KamataEngine::Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(2, 18);
+        player_->SetPosition(playerPosition);
+    }
 }
 
 void GameScene::CreateHitEffect(const KamataEngine::Vector3 position) { 
 	HitEffect* newHitEffect = HitEffect::Create(position);
 	hitEffects_.push_back(newHitEffect);
+}
+
+void GameScene::CreateProjectile(const KamataEngine::Vector3 position, const KamataEngine::Vector3 direction) {
+    // Projectile creation disabled: shooter logic currently does not spawn projectiles.
+    (void)position; (void)direction;
 }
 
 GameScene::~GameScene() {
@@ -472,6 +538,9 @@ GameScene::~GameScene() {
 
 	//ヒットエフェクト用モデルの解放
 	delete modelEffect_;
+
+	// プロジェクタイルの解放
+	// projectiles removed
 
 }
 
