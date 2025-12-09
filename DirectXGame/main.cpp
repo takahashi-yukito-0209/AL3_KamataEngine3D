@@ -92,7 +92,7 @@ void DrawScene() {
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	// エンジンの初期化
-	KamataEngine::Initialize(L"LE2C_17_タカハシ_ユキト_AL3");
+	KamataEngine::Initialize(L"LE2B_15_タカハシ_ユキト_AL4");
 
 	//最初のシーンの初期化
 	scene = Scene::kTitle;
