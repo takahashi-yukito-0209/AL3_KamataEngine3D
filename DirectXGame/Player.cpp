@@ -67,6 +67,10 @@ void Player::Update() {
 		break;
 	}
 
+	if (mapChipField_ && mapChipField_->IsGoal(worldTransform_.translation_)) {
+		SetReachedGoal(); // ゴールフラグを立てる
+	}
+
 	// アフィン変換とバッファ転送を一括でする関数
 	math_.WorldTransformUpdate(worldTransform_);
 }
@@ -171,7 +175,7 @@ void Player::BehaviorRootUpdate() {
 	}
 
 	// 攻撃キーを押したら
-	if (Input::GetInstance()->TriggerKey(DIK_R)) {
+	if (Input::GetInstance()->TriggerKey(DIK_B)) {
 		// 攻撃ビヘイビアをリクエスト
 		behaviorRequest_ = Behavior::kAttack;
 	}
@@ -286,15 +290,19 @@ void Player::BehaviorAttackInitialize() {
 }
 
 void Player::InputMove() {
+
 	// 接地状態
 	if (onGround_) {
 
+		// ジャンプ回数をリセット
+		jumpCount_ = 0;
+
 		// 左右移動操作
-		if (Input::GetInstance()->PushKey(DIK_RIGHT) || Input::GetInstance()->PushKey(DIK_LEFT)) {
+		if (Input::GetInstance()->PushKey(DIK_RIGHT) || Input::GetInstance()->PushKey(DIK_D) || Input::GetInstance()->PushKey(DIK_LEFT) || Input::GetInstance()->PushKey(DIK_A)) {
 			// 左右加速
 			Vector3 acceleration = {};
 
-			if (Input::GetInstance()->PushKey(DIK_RIGHT)) {
+			if (Input::GetInstance()->PushKey(DIK_RIGHT) || Input::GetInstance()->PushKey(DIK_D)) {
 
 				// 左移動中の右入力
 				if (velocity_.x < 0.0f) {
@@ -314,7 +322,7 @@ void Player::InputMove() {
 					turnTimer_ = kTimeTurn;
 				}
 
-			} else if (Input::GetInstance()->PushKey(DIK_LEFT)) {
+			} else if (Input::GetInstance()->PushKey(DIK_LEFT) || Input::GetInstance()->PushKey(DIK_A)) {
 
 				// 右移動中の左入力
 				if (velocity_.x > 0.0f) {
@@ -346,9 +354,11 @@ void Player::InputMove() {
 			velocity_.x *= (1.0f - kAttenuation);
 		}
 
-		if (Input::GetInstance()->PushKey(DIK_E)) {
-			// ジャンプ初速
-			velocity_.y += kJumpAcceleration;
+		// 一段目ジャンプ
+		if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
+			velocity_.y = kJumpAcceleration;
+			onGround_ = false;
+			jumpCount_ = 1;
 		}
 
 	} else {
@@ -357,6 +367,13 @@ void Player::InputMove() {
 
 		// 落下速度制限
 		velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
+
+		// --- 二段ジャンプ ---
+		if (Input::GetInstance()->TriggerKey(DIK_SPACE) && jumpCount_ == 1) {
+			velocity_.y = kJumpAcceleration;
+			jumpCount_ = 2;
+		}
+	
 	}
 }
 
@@ -393,6 +410,10 @@ void Player::CheckMapCollisionUp(CollisionMapInfo& info) {
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex + 1);
 
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
+
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
 	}
@@ -406,6 +427,10 @@ void Player::CheckMapCollisionUp(CollisionMapInfo& info) {
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kRightTop]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex + 1);
+
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
 
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
@@ -459,6 +484,10 @@ void Player::CheckMapCollisionDown(CollisionMapInfo& info) {
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex - 1);
 
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
+
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
 	}
@@ -472,6 +501,10 @@ void Player::CheckMapCollisionDown(CollisionMapInfo& info) {
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kLeftBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex - 1);
+
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
 
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
@@ -525,6 +558,10 @@ void Player::CheckMapCollisionRight(CollisionMapInfo& info) {
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex - 1, indexSet.yIndex);
 
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
+
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
 	}
@@ -538,6 +575,10 @@ void Player::CheckMapCollisionRight(CollisionMapInfo& info) {
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kRightBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex - 1, indexSet.yIndex);
+
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
 
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
@@ -591,6 +632,10 @@ void Player::CheckMapCollisionLeft(CollisionMapInfo& info) {
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex + 1, indexSet.yIndex);
 
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
+
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
 	}
@@ -604,6 +649,10 @@ void Player::CheckMapCollisionLeft(CollisionMapInfo& info) {
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kLeftBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex + 1, indexSet.yIndex);
+
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
 
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
@@ -694,6 +743,8 @@ void Player::UpdateOnGround(const CollisionMapInfo& info) {
 			velocity_.x *= (1.0f - kAttenuationLanding);
 			// Y速度をゼロにする
 			velocity_.y = 0.0f;
+			// 着地でジャンプ回数リセット
+			jumpCount_ = 0;
 		}
 	}
 }

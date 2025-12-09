@@ -9,6 +9,9 @@ void GameScene::Initialize() {
 	// 3Dモデルの生成
 	modelBlock_ = Model::CreateFromOBJ("block", true);
 
+	// 3Dモデルの生成
+	modelGoal_ = Model::CreateFromOBJ("goal", true);
+
 	// ワールドトランスフォームの初期化
 	worldTransform_.Initialize();
 
@@ -345,13 +348,22 @@ void GameScene::Draw() {
 
 
 	// ブロックの描画
-	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
-		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
+	for (uint32_t i = 0; i < worldTransformBlocks_.size(); ++i) {
+		for (uint32_t j = 0; j < worldTransformBlocks_[i].size(); ++j) {
+			WorldTransform* worldTransformBlock = worldTransformBlocks_[i][j];
 			if (!worldTransformBlock) {
 				continue;
 			}
 
-			modelBlock_->Draw(*worldTransformBlock, camera_);
+			// マップチップ種別を取得
+			MapChipType chipType = mapChipField_->GetMapChipTypeByIndex(j, i);
+
+			// ブロックの種類によって描画モデルを切り替え
+			if (chipType == MapChipType::kBlock) {
+				modelBlock_->Draw(*worldTransformBlock, camera_);
+			} else if (chipType == MapChipType::kGoal) {
+				modelGoal_->Draw(*worldTransformBlock, camera_); 
+			}
 		}
 	}
 
@@ -400,7 +412,9 @@ void GameScene::GenerateBlocks() {
 	for (uint32_t i = 0; i < kNumBlockVirtical; i++) {
 		for (uint32_t j = 0; j < kNumBlockHorizontal; j++) {
 
-			if (mapChipField_->GetMapChipTypeByIndex(j, i) == MapChipType::kBlock) {
+			MapChipType chipType = mapChipField_->GetMapChipTypeByIndex(j, i);
+
+			if (chipType == MapChipType::kBlock || chipType == MapChipType::kGoal) {
 				WorldTransform* worldTransform = new WorldTransform();
 				worldTransform->Initialize();
 				worldTransformBlocks_[i][j] = worldTransform;
@@ -495,6 +509,12 @@ void GameScene::ChangePhase() {
 	switch (phase_) {
 	case Phase::kPlay:
 		// ゲームプレイフェーズの処理
+
+		// 自キャラがゴールに到達した場合
+		if (player_->HasReachedGoal()) {
+			phase_ = Phase::kFadeOut;                
+			fade_->Start(Fade::Status::FadeOut, 1.0f); // フェード開始
+		}
 
 		// 自キャラがデス状態
 		if (player_->IsDead()) {

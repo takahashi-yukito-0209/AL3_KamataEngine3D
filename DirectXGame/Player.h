@@ -87,6 +87,9 @@ public:
 	// 攻撃行動初期化
 	void BehaviorAttackInitialize();
 
+	bool HasReachedGoal() const { return reachedGoal_; }
+	void SetReachedGoal() { reachedGoal_ = true; }
+
 private:
 	// ワールド変換データ
 	KamataEngine::WorldTransform worldTransform_;
@@ -227,4 +230,9 @@ private:
 
 	KamataEngine::ObjectColor objectColor_;
 
+	// ジャンプ回数
+	int jumpCount_ = 0;
+
+	// ゴール到達フラグ
+	bool reachedGoal_ = false; 
 };

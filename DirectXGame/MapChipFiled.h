@@ -4,6 +4,7 @@
 enum class MapChipType {
 	kBlank, // 空白
 	kBlock, // ブロック
+	kGoal   // ゴール
 };
 
 struct MapChipData {
@@ -35,7 +36,7 @@ private:
 
 	// ブロックの個数
 	static inline const uint32_t kNumBlockVirtical = 20;
-	static inline const uint32_t kNumBlockHorizontal = 100;
+	static inline const uint32_t kNumBlockHorizontal = 25;
 
 	// マップチップデータ
 	MapChipData mapChipData_;
@@ -63,5 +64,7 @@ public:
 
 	//ブロックの範囲取得関数
 	Rect GetRectByIndex(uint32_t xIndex, uint32_t yIndex);
+
+	bool IsGoal(const KamataEngine::Vector3& position);
 
 };

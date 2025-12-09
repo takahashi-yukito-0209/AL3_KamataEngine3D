@@ -59,6 +59,9 @@ private:
 	// ブロック3Dモデル
 	KamataEngine::Model* modelBlock_ = nullptr;
 
+	// ゴール3Dモデル
+	KamataEngine::Model* modelGoal_ = nullptr;
+
 	// ワールドトランスフォーム
 	KamataEngine::WorldTransform worldTransform_;
 
