@@ -29,6 +29,12 @@ void Player::Initialize(KamataEngine::Model* model, KamataEngine::Model* modelAt
 	worldTransform_.rotation_.y = std::numbers::pi_v<float> / 2.0f;
 }
 
+void Player::SetPosition(const KamataEngine::Vector3& position) {
+    worldTransform_.translation_ = position;
+    // 攻撃用ワールド変換も同期
+    worldTransformAttack_.translation_ = position;
+}
+
 void Player::Update() {
 
 	if (behaviorRequest_ != Behavior::kUnknown) {
@@ -65,6 +71,10 @@ void Player::Update() {
 		BehaviorAttackUpdate();
 
 		break;
+	}
+
+	if (mapChipField_ && mapChipField_->IsGoal(worldTransform_.translation_)) {
+		SetReachedGoal(); // ゴールフラグを立てる
 	}
 
 	// アフィン変換とバッファ転送を一括でする関数
@@ -135,11 +145,31 @@ void Player::BehaviorRootUpdate() {
 	collisionMapInfo.landing = false;
 	collisionMapInfo.hitWall = false;
 
-	// マップ衝突チェック
-	CheckMapCollision(collisionMapInfo);
+	// マップ衝突チェック（軸分離で処理してめり込みを防止）
+	{
+		// X軸移動だけで衝突判定
+		CollisionMapInfo infoX = collisionMapInfo;
+		infoX.move.y = 0.0f;
+		infoX.move.z = 0.0f;
+		CheckMapCollisionRight(infoX);
+		CheckMapCollisionLeft(infoX);
+		// X軸移動を反映
+		worldTransform_.translation_.x += infoX.move.x;
+		// 壁接触フラグを統合
+		collisionMapInfo.hitWall = collisionMapInfo.hitWall || infoX.hitWall;
 
-	// 移動
-	worldTransform_.translation_ += collisionMapInfo.move;
+		// Y軸移動だけで衝突判定
+		CollisionMapInfo infoY = collisionMapInfo;
+		infoY.move.x = 0.0f;
+		infoY.move.z = 0.0f;
+		CheckMapCollisionUp(infoY);
+		CheckMapCollisionDown(infoY);
+		// Y軸移動を反映
+		worldTransform_.translation_.y += infoY.move.y;
+		// 着地・天井フラグを統合
+		collisionMapInfo.landing = collisionMapInfo.landing || infoY.landing;
+		collisionMapInfo.ceiling = collisionMapInfo.ceiling || infoY.ceiling;
+	}
 
 	// 天井に当たった?
 	if (collisionMapInfo.ceiling) {
@@ -170,8 +200,29 @@ void Player::BehaviorRootUpdate() {
 		worldTransform_.rotation_.y = math_.easeInOut(t, turnFirstRotationY_, destinationRotationY);
 	}
 
+	// 二段ジャンプ時の縦回転アニメーション
+	if (isDoubleJumpFlip_) {
+
+		// カウンターを進める(1/60秒)
+		doubleJumpTimer_ += 1.0f / 60.0f;
+
+		// 正規化された進行度
+		float tFlip = std::clamp(doubleJumpTimer_ / kDoubleJumpFlipTime, 0.0f, 1.0f);
+
+		// イージングで回転量を決定（easeInOut）
+		float angle = math_.easeInOut(tFlip, 0.0f, kDoubleJumpFlipAngle);
+
+		// X軸回転に加算（開始時の角度から算出）
+		worldTransform_.rotation_.x = doubleJumpStartRotationX_ + angle;
+
+		// アニメーション終了後はフラグを消す
+		if (tFlip >= 1.0f) {
+			isDoubleJumpFlip_ = false;
+		}
+	}
+
 	// 攻撃キーを押したら
-	if (Input::GetInstance()->TriggerKey(DIK_R)) {
+	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
 		// 攻撃ビヘイビアをリクエスト
 		behaviorRequest_ = Behavior::kAttack;
 	}
@@ -179,7 +230,8 @@ void Player::BehaviorRootUpdate() {
 
 void Player::BehaviorAttackUpdate() {
 
-	const Vector3 attackVelocity = {0.8f, 0.0f, 0.0f};
+    // 各攻撃フェーズの時間(フレーム数)
+    const Vector3 attackVelocity = {0.45f, 0.0f, 0.0f};
 
 	// 攻撃動作用の速度
 	Vector3 velocity{};
@@ -244,11 +296,29 @@ void Player::BehaviorAttackUpdate() {
 	collisionMapInfo.landing = false;
 	collisionMapInfo.hitWall = false;
 
-	// マップ衝突チェック
-	CheckMapCollision(collisionMapInfo);
+	// マップ衝突チェック（軸分離で処理してめり込みを防止）
+	{
+		// X軸のみで判定
+		CollisionMapInfo infoX = collisionMapInfo;
+		infoX.move.y = 0.0f;
+		infoX.move.z = 0.0f;
+		CheckMapCollisionRight(infoX);
+		CheckMapCollisionLeft(infoX);
+		worldTransform_.translation_.x += infoX.move.x;
+		// 壁接触フラグを統合
+		collisionMapInfo.hitWall = collisionMapInfo.hitWall || infoX.hitWall;
 
-	// 移動
-	worldTransform_.translation_ += collisionMapInfo.move;
+		// Y軸のみで判定
+		CollisionMapInfo infoY = collisionMapInfo;
+		infoY.move.x = 0.0f;
+		infoY.move.z = 0.0f;
+		CheckMapCollisionUp(infoY);
+		CheckMapCollisionDown(infoY);
+		worldTransform_.translation_.y += infoY.move.y;
+		// 着地・天井フラグを統合
+		collisionMapInfo.landing = collisionMapInfo.landing || infoY.landing;
+		collisionMapInfo.ceiling = collisionMapInfo.ceiling || infoY.ceiling;
+	}
 
 	// 旋回制御
 	if (turnTimer_ > 0.0f) {
@@ -286,15 +356,19 @@ void Player::BehaviorAttackInitialize() {
 }
 
 void Player::InputMove() {
+
 	// 接地状態
 	if (onGround_) {
 
+		// ジャンプ回数をリセット
+		jumpCount_ = 0;
+
 		// 左右移動操作
-		if (Input::GetInstance()->PushKey(DIK_RIGHT) || Input::GetInstance()->PushKey(DIK_LEFT)) {
+		if (Input::GetInstance()->PushKey(DIK_RIGHT) || Input::GetInstance()->PushKey(DIK_D) || Input::GetInstance()->PushKey(DIK_LEFT) || Input::GetInstance()->PushKey(DIK_A)) {
 			// 左右加速
 			Vector3 acceleration = {};
 
-			if (Input::GetInstance()->PushKey(DIK_RIGHT)) {
+			if (Input::GetInstance()->PushKey(DIK_RIGHT) || Input::GetInstance()->PushKey(DIK_D)) {
 
 				// 左移動中の右入力
 				if (velocity_.x < 0.0f) {
@@ -314,7 +388,7 @@ void Player::InputMove() {
 					turnTimer_ = kTimeTurn;
 				}
 
-			} else if (Input::GetInstance()->PushKey(DIK_LEFT)) {
+			} else if (Input::GetInstance()->PushKey(DIK_LEFT) || Input::GetInstance()->PushKey(DIK_A)) {
 
 				// 右移動中の左入力
 				if (velocity_.x > 0.0f) {
@@ -346,9 +420,11 @@ void Player::InputMove() {
 			velocity_.x *= (1.0f - kAttenuation);
 		}
 
-		if (Input::GetInstance()->PushKey(DIK_E)) {
-			// ジャンプ初速
-			velocity_.y += kJumpAcceleration;
+        // 一段目ジャンプ (Wキーまたは上矢印キー)
+        if (Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP)) {
+			velocity_.y = kJumpAcceleration;
+			onGround_ = false;
+			jumpCount_ = 1;
 		}
 
 	} else {
@@ -357,6 +433,18 @@ void Player::InputMove() {
 
 		// 落下速度制限
 		velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
+
+        // --- 二段ジャンプ ---
+        if ((Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP)) && jumpCount_ == 1) {
+			velocity_.y = kJumpAcceleration;
+			jumpCount_ = 2;
+
+			// 二段ジャンプ開始時に縦回転(クルン)を開始する
+			isDoubleJumpFlip_ = true;
+			doubleJumpTimer_ = 0.0f;
+			doubleJumpStartRotationX_ = worldTransform_.rotation_.x;
+		}
+	
 	}
 }
 
@@ -393,6 +481,10 @@ void Player::CheckMapCollisionUp(CollisionMapInfo& info) {
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex + 1);
 
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
+
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
 	}
@@ -406,6 +498,10 @@ void Player::CheckMapCollisionUp(CollisionMapInfo& info) {
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kRightTop]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex + 1);
+
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
 
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
@@ -459,6 +555,10 @@ void Player::CheckMapCollisionDown(CollisionMapInfo& info) {
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex - 1);
 
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
+
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
 	}
@@ -472,6 +572,10 @@ void Player::CheckMapCollisionDown(CollisionMapInfo& info) {
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kLeftBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex - 1);
+
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
 
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
@@ -525,6 +629,10 @@ void Player::CheckMapCollisionRight(CollisionMapInfo& info) {
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex - 1, indexSet.yIndex);
 
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
+
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
 	}
@@ -538,6 +646,10 @@ void Player::CheckMapCollisionRight(CollisionMapInfo& info) {
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kRightBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex - 1, indexSet.yIndex);
+
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
 
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
@@ -591,6 +703,10 @@ void Player::CheckMapCollisionLeft(CollisionMapInfo& info) {
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex + 1, indexSet.yIndex);
 
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
+
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
 	}
@@ -604,6 +720,10 @@ void Player::CheckMapCollisionLeft(CollisionMapInfo& info) {
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kLeftBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex + 1, indexSet.yIndex);
+
+	if (mapChipType == MapChipType::kGoal) {
+		reachedGoal_ = true; // ゴール到達フラグを立てる
+	}
 
 	if (mapChipType == MapChipType::kBlock) {
 		hit = true;
@@ -694,6 +814,16 @@ void Player::UpdateOnGround(const CollisionMapInfo& info) {
 			velocity_.x *= (1.0f - kAttenuationLanding);
 			// Y速度をゼロにする
 			velocity_.y = 0.0f;
+			// 着地でジャンプ回数リセット
+			jumpCount_ = 0;
+
+			// 二段ジャンプの回転を終了・リセット
+			if (isDoubleJumpFlip_) {
+				isDoubleJumpFlip_ = false;
+				doubleJumpTimer_ = 0.0f;
+				// 回転を初期状態に戻す
+				worldTransform_.rotation_.x = 0.0f;
+			}
 		}
 	}
 }

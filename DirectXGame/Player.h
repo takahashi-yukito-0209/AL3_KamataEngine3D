@@ -1,6 +1,7 @@
 #pragma once
 #include "KamataEngine.h"
 #include "math.h"
+#include <numbers>
 
 // 前方宣言
 class MapChipField;
@@ -58,6 +59,9 @@ public:
 	// ワールド座標を取得
 	KamataEngine::Vector3 GetWorldPosition() const;
 
+	// ワールド座標を設定
+	void SetPosition(const KamataEngine::Vector3& position);
+
 	// AABB取得関数
 	AABB GetAABB();
 
@@ -87,6 +91,9 @@ public:
 	// 攻撃行動初期化
 	void BehaviorAttackInitialize();
 
+	bool HasReachedGoal() const { return reachedGoal_; }
+	void SetReachedGoal() { reachedGoal_ = true; }
+
 private:
 	// ワールド変換データ
 	KamataEngine::WorldTransform worldTransform_;
@@ -106,14 +113,16 @@ private:
 	// 移動量
 	KamataEngine::Vector3 velocity_ = {};
 
-	// 加速度
-	static inline const float kAcceleration = 0.1f;
+    // 加速度
+    static inline const float kAcceleration = 0.06f;
 
 	// 非入力時の摩擦係数
-	static inline const float kAttenuation = 0.05f;
+	// 非入力時の摩擦係数
+	// 慣性を弱めて操作感を良くするため、減衰を強める
+	static inline const float kAttenuation = 0.12f;
 
-	// 最大速度
-	static inline const float kLimitRunSpeed = 0.3f;
+    // 最大速度
+    static inline const float kLimitRunSpeed = 0.22f;
 
 	// 初期の向いている方向
 	LRDirection lrDirection_ = LRDirection::kRight;
@@ -187,7 +196,8 @@ private:
 	void UpdateOnWall(const CollisionMapInfo& info);
 
 	// 着地時の速度減衰率
-	static inline const float kAttenuationLanding = 0.0f;
+	// 着地後の慣性を抑えるため、若干の減衰を入れる
+	static inline const float kAttenuationLanding = 0.2f;
 
 	// 微小な数値
 	static inline const float kGroundSearchHeight = 0.06f;
@@ -227,4 +237,23 @@ private:
 
 	KamataEngine::ObjectColor objectColor_;
 
+	// ジャンプ回数
+	int jumpCount_ = 0;
+
+	// ゴール到達フラグ
+	bool reachedGoal_ = false; 
+
+	// --- 二段ジャンプ時の縦回転(クルン)用 ---
+	// 二段ジャンプ中に縦回転する時間[秒]
+	// 回転を速く終わらせるため短縮
+	static inline const float kDoubleJumpFlipTime = 0.5f;
+	// 回転角(rad)（1回転）
+	static inline const float kDoubleJumpFlipAngle = std::numbers::pi_v<float> * 2.0f;
+
+	// 二段ジャンプの回転フラグ
+	bool isDoubleJumpFlip_ = false;
+	// 二段ジャンプ用のタイマー
+	float doubleJumpTimer_ = 0.0f;
+	// 回転開始時のX回転角
+	float doubleJumpStartRotationX_ = 0.0f;
 };

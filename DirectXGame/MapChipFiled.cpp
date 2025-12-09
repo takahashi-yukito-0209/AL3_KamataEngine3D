@@ -9,6 +9,7 @@ namespace {
 std::map<std::string, MapChipType> mapChipTable = {
     {"0", MapChipType::kBlank},
     {"1", MapChipType::kBlock},
+    {"2", MapChipType::kGoal },
 };
 
 }
@@ -96,4 +97,10 @@ Rect MapChipField::GetRectByIndex(uint32_t xIndex, uint32_t yIndex) {
 	rect.top = center.y + kBlockHeight / 2.0f;
 
 	return rect;
+}
+
+bool MapChipField::IsGoal(const KamataEngine::Vector3& position) {
+	IndexSet indexSet = GetMapChipIndexSetByPosition(position);
+	MapChipType type = GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
+	return type == MapChipType::kGoal;
 }

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <numbers>
+#include <cmath>
 
 using namespace KamataEngine;
 
@@ -24,10 +25,20 @@ void Enemy::Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera,
 	// 速度を設定する
 	velocity_ = {-kWalkSpeed, 0, 0};
 
-	// 角度調整
-	worldTransform_.rotation_.y = std::numbers::pi_v<float> * 3.0f / 2.0f;
+    // 角度調整: 速度の向きに合わせる（移動する敵と同じ向きにする）
+    worldTransform_.rotation_.y = (velocity_.x > 0.0f) ? (0.0f + kModelFacingOffsetY) : (std::numbers::pi_v<float> + kModelFacingOffsetY);
 
 	walkTimer_ = 0.0f;
+}
+
+void Enemy::SetTarget(Player* player) {
+    target_ = player;
+    if (target_) {
+        // プレイヤーが自分の左側にいる場合は左（pi）、右側にいる場合は右（0）を向く
+        KamataEngine::Vector3 p = target_->GetWorldPosition();
+        float dx = p.x - worldTransform_.translation_.x;
+        worldTransform_.rotation_.y = (dx > 0.0f) ? (0.0f + kModelFacingOffsetY) : (std::numbers::pi_v<float> + kModelFacingOffsetY);
+    }
 }
 
 void Enemy::Update() {
@@ -57,7 +68,18 @@ void Enemy::Update() {
 	switch (behavior_) {
 	case Behavior::kRoot:
 	default:
-		BehaviorRootUpdate();
+		// Choose pattern-based root behavior
+		switch (pattern_) {
+		case Pattern::kPatrol:
+			BehaviorPatrolUpdate();
+			break;
+		case Pattern::kChase:
+			BehaviorChaseUpdate();
+			break;
+		case Pattern::kShooter:
+			BehaviorShooterUpdate();
+			break;
+		}
 
 		break;
 
@@ -70,7 +92,100 @@ void Enemy::Update() {
 
 	// アフィン変換とバッファ転送を一括でする関数
 	math_.WorldTransformUpdate(worldTransform_);
+
+	}
+
+void Enemy::BehaviorPatrolUpdate() {
+    // 単純左右往復
+    worldTransform_.translation_ += velocity_;
+
+    // 範囲反転
+    if (worldTransform_.translation_.x < patrolLeftX_ || worldTransform_.translation_.x > patrolRightX_) {
+        velocity_.x = -velocity_.x;
+        // 旋回アニメーション開始
+        patrolStartRotationY_ = worldTransform_.rotation_.y;
+        patrolTargetRotationY_ = (velocity_.x > 0) ? 0.0f : std::numbers::pi_v<float>;
+        patrolTurnTimer_ = kPatrolTurnTime;
+        // 旋回終了後に適用したい速度を保存
+        patrolDesiredVelocityX_ = velocity_.x;
+    }
+
+    // 歩行アニメーション
+    walkTimer_ += 1.0f / 60.0f;
+    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime);
+
+    // 旋回タイマーがあればイージングで回転
+    if (patrolTurnTimer_ > 0.0f) {
+        patrolTurnTimer_ -= 1.0f / 60.0f;
+        float t = 1.0f - (patrolTurnTimer_ / kPatrolTurnTime);
+        worldTransform_.rotation_.y = math_.easeInOut(t, patrolStartRotationY_, patrolTargetRotationY_);
+    } else {
+        // 旋回が終わった直後に希望する速度があれば適用
+        if (std::abs(patrolDesiredVelocityX_) > 1e-6f) {
+            velocity_.x = patrolDesiredVelocityX_;
+            patrolDesiredVelocityX_ = 0.0f;
+        }
+
+        // 向き: 常に移動方向に合わせる（プレイヤー方向に合わせない）
+        if (std::abs(velocity_.x) > 1e-6f) {
+            worldTransform_.rotation_.y = (velocity_.x > 0) ? 0.0f + kModelFacingOffsetY : std::numbers::pi_v<float> + kModelFacingOffsetY;
+        }
+    }
 }
+
+void Enemy::BehaviorChaseUpdate() {
+    if (!target_) {
+        BehaviorPatrolUpdate();
+        return;
+    }
+
+    // プレイヤーとの距離を計算
+    KamataEngine::Vector3 playerPos = target_->GetWorldPosition();
+    float dx = playerPos.x - worldTransform_.translation_.x;
+
+    // 近ければ移動
+    float dir = (dx > 0) ? 1.0f : -1.0f;
+    velocity_.x = dir * kChaseSpeed;
+    worldTransform_.translation_ += velocity_;
+
+    // 向き: 移動方向に合わせる（プレイヤー方向に合わせない）
+    if (std::abs(velocity_.x) > 1e-6f) {
+        worldTransform_.rotation_.y = (velocity_.x > 0) ? 0.0f + kModelFacingOffsetY : std::numbers::pi_v<float> + kModelFacingOffsetY;
+    }
+
+    // 歩行アニメーション
+    walkTimer_ += 1.0f / 60.0f;
+    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime);
+}
+
+void Enemy::BehaviorShooterUpdate() {
+    if (!target_) {
+        BehaviorPatrolUpdate();
+        return;
+    }
+
+    // 距離を測って射程内ならタイマーでショット（現在はダミー）
+    KamataEngine::Vector3 playerPos = target_->GetWorldPosition();
+    float dx = playerPos.x - worldTransform_.translation_.x;
+    float dz = playerPos.z - worldTransform_.translation_.z;
+    float dist = std::sqrt(dx * dx + dz * dz);
+
+    // 向き: 移動方向に合わせる（プレイヤー方向に合わせない）
+    if (std::abs(velocity_.x) > 1e-6f) {
+        worldTransform_.rotation_.y = (velocity_.x > 0) ? (0.0f + kModelFacingOffsetY) : (std::numbers::pi_v<float> + kModelFacingOffsetY);
+    }
+
+    // 射撃ロジック（タイマーのみ）
+    // NOTE: 弾の生成処理は未実装のままにする（後で実装予定）
+    deathTimer_ += 1.0f / 60.0f; // reuse timer as shoot timer
+    if (dist <= kShootRange && deathTimer_ >= kShootInterval) {
+        // TODO: 実際の弾生成処理をここに実装する
+        // 現在は発射タイミングだけをリセットしておく
+        deathTimer_ = 0.0f;
+    }
+}
+
+    
 
 void Enemy::Draw() {
 	// 3Dモデルを描画
