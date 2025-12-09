@@ -139,11 +139,31 @@ void Player::BehaviorRootUpdate() {
 	collisionMapInfo.landing = false;
 	collisionMapInfo.hitWall = false;
 
-	// マップ衝突チェック
-	CheckMapCollision(collisionMapInfo);
+	// マップ衝突チェック（軸分離で処理してめり込みを防止）
+	{
+		// X軸移動だけで衝突判定
+		CollisionMapInfo infoX = collisionMapInfo;
+		infoX.move.y = 0.0f;
+		infoX.move.z = 0.0f;
+		CheckMapCollisionRight(infoX);
+		CheckMapCollisionLeft(infoX);
+		// X軸移動を反映
+		worldTransform_.translation_.x += infoX.move.x;
+		// 壁接触フラグを統合
+		collisionMapInfo.hitWall = collisionMapInfo.hitWall || infoX.hitWall;
 
-	// 移動
-	worldTransform_.translation_ += collisionMapInfo.move;
+		// Y軸移動だけで衝突判定
+		CollisionMapInfo infoY = collisionMapInfo;
+		infoY.move.x = 0.0f;
+		infoY.move.z = 0.0f;
+		CheckMapCollisionUp(infoY);
+		CheckMapCollisionDown(infoY);
+		// Y軸移動を反映
+		worldTransform_.translation_.y += infoY.move.y;
+		// 着地・天井フラグを統合
+		collisionMapInfo.landing = collisionMapInfo.landing || infoY.landing;
+		collisionMapInfo.ceiling = collisionMapInfo.ceiling || infoY.ceiling;
+	}
 
 	// 天井に当たった?
 	if (collisionMapInfo.ceiling) {
@@ -174,6 +194,27 @@ void Player::BehaviorRootUpdate() {
 		worldTransform_.rotation_.y = math_.easeInOut(t, turnFirstRotationY_, destinationRotationY);
 	}
 
+	// 二段ジャンプ時の縦回転アニメーション
+	if (isDoubleJumpFlip_) {
+
+		// カウンターを進める(1/60秒)
+		doubleJumpTimer_ += 1.0f / 60.0f;
+
+		// 正規化された進行度
+		float tFlip = std::clamp(doubleJumpTimer_ / kDoubleJumpFlipTime, 0.0f, 1.0f);
+
+		// イージングで回転量を決定（easeInOut）
+		float angle = math_.easeInOut(tFlip, 0.0f, kDoubleJumpFlipAngle);
+
+		// X軸回転に加算（開始時の角度から算出）
+		worldTransform_.rotation_.x = doubleJumpStartRotationX_ + angle;
+
+		// アニメーション終了後はフラグを消す
+		if (tFlip >= 1.0f) {
+			isDoubleJumpFlip_ = false;
+		}
+	}
+
 	// 攻撃キーを押したら
 	if (Input::GetInstance()->TriggerKey(DIK_B)) {
 		// 攻撃ビヘイビアをリクエスト
@@ -183,7 +224,8 @@ void Player::BehaviorRootUpdate() {
 
 void Player::BehaviorAttackUpdate() {
 
-	const Vector3 attackVelocity = {0.8f, 0.0f, 0.0f};
+    // 各攻撃フェーズの時間(フレーム数)
+    const Vector3 attackVelocity = {0.45f, 0.0f, 0.0f};
 
 	// 攻撃動作用の速度
 	Vector3 velocity{};
@@ -248,11 +290,29 @@ void Player::BehaviorAttackUpdate() {
 	collisionMapInfo.landing = false;
 	collisionMapInfo.hitWall = false;
 
-	// マップ衝突チェック
-	CheckMapCollision(collisionMapInfo);
+	// マップ衝突チェック（軸分離で処理してめり込みを防止）
+	{
+		// X軸のみで判定
+		CollisionMapInfo infoX = collisionMapInfo;
+		infoX.move.y = 0.0f;
+		infoX.move.z = 0.0f;
+		CheckMapCollisionRight(infoX);
+		CheckMapCollisionLeft(infoX);
+		worldTransform_.translation_.x += infoX.move.x;
+		// 壁接触フラグを統合
+		collisionMapInfo.hitWall = collisionMapInfo.hitWall || infoX.hitWall;
 
-	// 移動
-	worldTransform_.translation_ += collisionMapInfo.move;
+		// Y軸のみで判定
+		CollisionMapInfo infoY = collisionMapInfo;
+		infoY.move.x = 0.0f;
+		infoY.move.z = 0.0f;
+		CheckMapCollisionUp(infoY);
+		CheckMapCollisionDown(infoY);
+		worldTransform_.translation_.y += infoY.move.y;
+		// 着地・天井フラグを統合
+		collisionMapInfo.landing = collisionMapInfo.landing || infoY.landing;
+		collisionMapInfo.ceiling = collisionMapInfo.ceiling || infoY.ceiling;
+	}
 
 	// 旋回制御
 	if (turnTimer_ > 0.0f) {
@@ -372,6 +432,11 @@ void Player::InputMove() {
 		if (Input::GetInstance()->TriggerKey(DIK_SPACE) && jumpCount_ == 1) {
 			velocity_.y = kJumpAcceleration;
 			jumpCount_ = 2;
+
+			// 二段ジャンプ開始時に縦回転(クルン)を開始する
+			isDoubleJumpFlip_ = true;
+			doubleJumpTimer_ = 0.0f;
+			doubleJumpStartRotationX_ = worldTransform_.rotation_.x;
 		}
 	
 	}
@@ -745,6 +810,14 @@ void Player::UpdateOnGround(const CollisionMapInfo& info) {
 			velocity_.y = 0.0f;
 			// 着地でジャンプ回数リセット
 			jumpCount_ = 0;
+
+			// 二段ジャンプの回転を終了・リセット
+			if (isDoubleJumpFlip_) {
+				isDoubleJumpFlip_ = false;
+				doubleJumpTimer_ = 0.0f;
+				// 回転を初期状態に戻す
+				worldTransform_.rotation_.x = 0.0f;
+			}
 		}
 	}
 }

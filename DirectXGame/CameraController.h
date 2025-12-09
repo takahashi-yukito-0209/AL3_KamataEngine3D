@@ -49,8 +49,8 @@ private:
 	//  目標座標
 	KamataEngine::Vector3 destination_;
 
-	//  座標補間割合
-	static inline const float kInterpolationRate = 0.1f;
+    //  座標補間割合
+    static inline const float kInterpolationRate = 0.06f;
 
 	//  速度掛け率
 	static inline const float kVelocityBias = 30.0f;

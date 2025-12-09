@@ -1,6 +1,7 @@
 #pragma once
 #include "KamataEngine.h"
 #include "math.h"
+#include <numbers>
 
 // 前方宣言
 class MapChipField;
@@ -109,14 +110,14 @@ private:
 	// 移動量
 	KamataEngine::Vector3 velocity_ = {};
 
-	// 加速度
-	static inline const float kAcceleration = 0.1f;
+    // 加速度
+    static inline const float kAcceleration = 0.06f;
 
 	// 非入力時の摩擦係数
 	static inline const float kAttenuation = 0.05f;
 
-	// 最大速度
-	static inline const float kLimitRunSpeed = 0.3f;
+    // 最大速度
+    static inline const float kLimitRunSpeed = 0.22f;
 
 	// 初期の向いている方向
 	LRDirection lrDirection_ = LRDirection::kRight;
@@ -235,4 +236,18 @@ private:
 
 	// ゴール到達フラグ
 	bool reachedGoal_ = false; 
+
+	// --- 二段ジャンプ時の縦回転(クルン)用 ---
+	// 二段ジャンプ中に縦回転する時間[秒]
+	// 回転を速く終わらせるため短縮
+	static inline const float kDoubleJumpFlipTime = 0.5f;
+	// 回転角(rad)（1回転）
+	static inline const float kDoubleJumpFlipAngle = std::numbers::pi_v<float> * 2.0f;
+
+	// 二段ジャンプの回転フラグ
+	bool isDoubleJumpFlip_ = false;
+	// 二段ジャンプ用のタイマー
+	float doubleJumpTimer_ = 0.0f;
+	// 回転開始時のX回転角
+	float doubleJumpStartRotationX_ = 0.0f;
 };
