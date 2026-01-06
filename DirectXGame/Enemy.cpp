@@ -175,18 +175,21 @@ void Enemy::BehaviorChaseUpdate() {
     // プレイヤーとの距離を計算
     KamataEngine::Vector3 playerPos = target_->GetWorldPosition();
     float dx = playerPos.x - worldTransform_.translation_.x;
-
-    // 近ければ移動
+    // 水平方向はプレイヤーへ向かう向きで移動
     float dir = (dx > 0) ? 1.0f : -1.0f;
     velocity_.x = dir * kChaseSpeed;
-    worldTransform_.translation_ += velocity_;
+    worldTransform_.translation_.x += velocity_.x;
 
-    // 向き: 移動方向に合わせる（プレイヤー方向に合わせない）
+    // 垂直方向（Y）は徐々にプレイヤーの高さに近づける
+    // lerp でスムーズに中心高さをプレイヤーに近づける
+    baseY_ = std::lerp(baseY_, playerPos.y, 0.02f);
+
+    // 向き: 移動方向に合わせる
     if (std::abs(velocity_.x) > 1e-6f) {
         worldTransform_.rotation_.y = (velocity_.x > 0) ? 0.0f + kModelFacingOffsetY : std::numbers::pi_v<float> + kModelFacingOffsetY;
     }
 
-    // 浮遊アニメーション（上下に bob ）
+    // 浮遊アニメーション（上下に bob ）を baseY_ を中心に適用
     walkTimer_ += 1.0f / 60.0f;
     worldTransform_.translation_.y = baseY_ + std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatBobAmplitude;
     // 少しだけ前後に傾ける（人魂の揺れ感）
@@ -295,4 +298,26 @@ void Enemy::KeepWithinStage(MapChipField* mapChipField) {
     // Clamp translation
     worldTransform_.translation_.x = std::clamp(worldTransform_.translation_.x, minX, maxX);
     worldTransform_.translation_.y = std::clamp(worldTransform_.translation_.y, minY, maxY);
+
+    // 前方にブロックがあれば反転させる（徘徊する敵がブロックで折り返す挙動）
+    // 現在のブロックインデックスを取得
+    IndexSet idx = mapChipField->GetMapChipIndexSetByPosition(worldTransform_.translation_);
+    // 左右のチェック
+    if (velocity_.x > 0.0f) {
+        // 右側のマップチップをチェック
+        if (idx.xIndex + 1 < w) {
+            if (mapChipField->GetMapChipTypeByIndex(idx.xIndex + 1, idx.yIndex) == MapChipType::kBlock) {
+                velocity_.x = -velocity_.x;
+                // 向きを即座に反転
+                worldTransform_.rotation_.y = std::numbers::pi_v<float> + kModelFacingOffsetY;
+            }
+        }
+    } else if (velocity_.x < 0.0f) {
+        if (idx.xIndex > 0) {
+            if (mapChipField->GetMapChipTypeByIndex(idx.xIndex - 1, idx.yIndex) == MapChipType::kBlock) {
+                velocity_.x = -velocity_.x;
+                worldTransform_.rotation_.y = 0.0f + kModelFacingOffsetY;
+            }
+        }
+    }
 }

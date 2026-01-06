@@ -1,4 +1,5 @@
 #include "GameScene.h"
+#include <random>
 
 using namespace KamataEngine;
 
@@ -80,59 +81,72 @@ void GameScene::Initialize() {
 
     // （射撃物や敵の攻撃エフェクト用モデルは削除済み）
 
-    // 敵の生成と座標設定、初期化
-    // 1: パトロール
+    // 敵の生成と座標設定、初期化（ランダムスポーン）
     {
-        Enemy* e = new Enemy();
-        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(10, 18);
-        // 生成位置を少し上にずらす
-        pos.y += 0.2f;
-        e->Initialize(modelEnemy_, &camera_, pos);
-        e->SetGameScene(this);
-        e->SetPattern(Enemy::Pattern::kPatrol);
-        // パトロール範囲を設定（左右2ブロック分）
-        e->SetPatrolRange(pos.x - 2.0f, pos.x + 2.0f);
-        // 設定: patrol 範囲
-        e->SetTarget(player_);
-        enemies_.push_back(e);
-    }
-    // 2: 追跡
-    {
-        Enemy* e = new Enemy();
-        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(14, 18);
-        // 生成位置を少し上にずらす
-        pos.y += 0.2f;
-        e->Initialize(modelEnemy_, &camera_, pos);
-        e->SetGameScene(this);
-        e->SetPattern(Enemy::Pattern::kChase);
-        e->SetTarget(player_);
-        enemies_.push_back(e);
-    }
+        // ランダム生成の準備
+        std::random_device rd;
+        std::mt19937 mt(rd());
 
-    // 3: 停止（浮遊のみ）
-    {
-        Enemy* e = new Enemy();
-        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(16, 18);
-        // 生成位置を少し上にずらす
-        pos.y += 0.2f;
-        e->Initialize(modelEnemy_, &camera_, pos);
-        e->SetGameScene(this);
-        e->SetPattern(Enemy::Pattern::kStop);
-        e->SetTarget(player_);
-        enemies_.push_back(e);
-    }
+        auto spawnRandom = [&](Enemy::Pattern pattern, int count) {
+            const uint32_t w = mapChipField_->GetNumBlockHorizontal();
+            const uint32_t h = mapChipField_->GetNumBlockVirtical();
+            std::uniform_int_distribution<int> distX(0, static_cast<int>(w) - 1);
+            std::uniform_int_distribution<int> distY(0, static_cast<int>(h) - 1);
 
-    // 4: 飛行
-    {
-        Enemy* e = new Enemy();
-        // 生成位置: 下側より少し上から出現するように Y を少し上げる
-        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(20, 14);
-        pos.y += 0.2f;
-        e->Initialize(modelEnemy_, &camera_, pos);
-        e->SetGameScene(this);
-        e->SetPattern(Enemy::Pattern::kFly);
-        e->SetTarget(player_);
-        enemies_.push_back(e);
+            int attemptsLimit = 500;
+            for (int n = 0; n < count; ++n) {
+                Vector3 pos;
+                bool found = false;
+                for (int attempt = 0; attempt < attemptsLimit; ++attempt) {
+                    int xi = distX(mt);
+                    int yi = distY(mt);
+                    // スポーンタイルは空白であることを要求
+                    if (mapChipField_->GetMapChipTypeByIndex(xi, yi) != MapChipType::kBlank) continue;
+
+                    pos = mapChipField_->GetMapChipPositionByIndex(xi, yi);
+                    // 少しだけ浮かせる
+                    pos.y += 0.2f;
+
+                    // プレイヤーと被らないように近接チェック
+                    if (player_) {
+                        Vector3 ppos = player_->GetWorldPosition();
+                        float dx = pos.x - ppos.x;
+                        float dy = pos.y - ppos.y;
+                        if (std::sqrt(dx * dx + dy * dy) < 1.5f) {
+                            continue; // 近すぎるのでリジェクト
+                        }
+                    }
+
+                    found = true;
+                    break;
+                }
+
+                if (!found) {
+                    // 見つからなければ既存の中心付近にフォールバック
+                    pos = mapChipField_->GetMapChipPositionByIndex(w / 2, h / 2);
+                    pos.y += 0.2f;
+                }
+
+                Enemy* e = new Enemy();
+                e->Initialize(modelEnemy_, &camera_, pos);
+                e->SetGameScene(this);
+                e->SetPattern(pattern);
+                e->SetTarget(player_);
+
+                // パトロールなら左右範囲を設定
+                if (pattern == Enemy::Pattern::kPatrol) {
+                    e->SetPatrolRange(pos.x - 2.0f, pos.x + 2.0f);
+                }
+
+                enemies_.push_back(e);
+            }
+        };
+
+        // パターンごとに生成数を指定
+        spawnRandom(Enemy::Pattern::kPatrol, 3);
+        spawnRandom(Enemy::Pattern::kChase, 2);
+        spawnRandom(Enemy::Pattern::kStop, 2);
+        spawnRandom(Enemy::Pattern::kFly, 2);
     }
 
     // （逃走する敵は無し）
