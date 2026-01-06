@@ -10,7 +10,7 @@ void TitleScene::Initialize() {
 	// カメラ初期化
 	camera_.Initialize();
 
-	const float kPlayerTitle = 2.0f;
+    const float kPlayerTitle = 3.0f;
 
 	worldTransformTitle_.Initialize();
 
