@@ -30,8 +30,6 @@ public:
 	//エフェクトを生成
 	void CreateHitEffect(const KamataEngine::Vector3 position);
 
-	// 弾生成（公開）
-	void CreateProjectile(const KamataEngine::Vector3 position, const KamataEngine::Vector3 direction);
 
 	// デストラクタ
 	~GameScene();

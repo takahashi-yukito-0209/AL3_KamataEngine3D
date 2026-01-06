@@ -2,6 +2,7 @@
 #include "Enemy.h"
 #include "GameScene.h"
 #include "Player.h"
+#include "MapChipFiled.h"
 #include <algorithm>
 #include <cassert>
 #include <numbers>
@@ -28,6 +29,10 @@ void Enemy::Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera,
     // 角度調整: 速度の向きに合わせる（移動する敵と同じ向きにする）
     worldTransform_.rotation_.y = (velocity_.x > 0.0f) ? (0.0f + kModelFacingOffsetY) : (std::numbers::pi_v<float> + kModelFacingOffsetY);
 
+	// 基準Yを記録して上下の浮遊に使う
+	baseY_ = position.y;
+	// 基準高さを記録（飛行の上下運動用）
+	baseHeight_ = position.y;
 	walkTimer_ = 0.0f;
 }
 
@@ -40,6 +45,28 @@ void Enemy::SetTarget(Player* player) {
         worldTransform_.rotation_.y = (dx > 0.0f) ? (0.0f + kModelFacingOffsetY) : (std::numbers::pi_v<float> + kModelFacingOffsetY);
     }
 }
+
+
+void Enemy::BehaviorStopUpdate() {
+    // 停止だけど浮遊アニメーションは続ける
+    // 速度を0にして浮遊のみ行う
+    velocity_.x = 0.0f;
+
+    walkTimer_ += 1.0f / 60.0f;
+    worldTransform_.translation_.y = baseY_ + std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatBobAmplitude;
+    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatTiltAmplitude;
+}
+
+void Enemy::BehaviorFlyUpdate() {
+    // 上下移動（浮遊とは別に大きく上下する飛行）
+    walkTimer_ += 1.0f / 60.0f;
+    float yOffset = std::sin(walkTimer_ * kFlySpeed) * kFlyAmplitude;
+    worldTransform_.translation_.y = baseHeight_ + yOffset;
+
+    // 傾きの表現は既存の浮遊と合わせる
+    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatTiltAmplitude;
+}
+// BehaviorFleeUpdate は削除済み
 
 void Enemy::Update() {
 
@@ -68,7 +95,7 @@ void Enemy::Update() {
 	switch (behavior_) {
 	case Behavior::kRoot:
 	default:
-		// Choose pattern-based root behavior
+		// パターンに基づく root 振る舞いを選択
 		switch (pattern_) {
 		case Pattern::kPatrol:
 			BehaviorPatrolUpdate();
@@ -76,9 +103,13 @@ void Enemy::Update() {
 		case Pattern::kChase:
 			BehaviorChaseUpdate();
 			break;
-		case Pattern::kShooter:
-			BehaviorShooterUpdate();
-			break;
+	case Pattern::kStop:
+		BehaviorStopUpdate();
+		break;
+	case Pattern::kFly:
+		BehaviorFlyUpdate();
+		break;
+
 		}
 
 		break;
@@ -110,9 +141,11 @@ void Enemy::BehaviorPatrolUpdate() {
         patrolDesiredVelocityX_ = velocity_.x;
     }
 
-    // 歩行アニメーション
+    // 浮遊アニメーション（上下に bob ）
     walkTimer_ += 1.0f / 60.0f;
-    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime);
+    worldTransform_.translation_.y = baseY_ + std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatBobAmplitude;
+    // 少しだけ前後に傾ける（人魂の揺れ感）
+    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatTiltAmplitude;
 
     // 旋回タイマーがあればイージングで回転
     if (patrolTurnTimer_ > 0.0f) {
@@ -153,36 +186,11 @@ void Enemy::BehaviorChaseUpdate() {
         worldTransform_.rotation_.y = (velocity_.x > 0) ? 0.0f + kModelFacingOffsetY : std::numbers::pi_v<float> + kModelFacingOffsetY;
     }
 
-    // 歩行アニメーション
+    // 浮遊アニメーション（上下に bob ）
     walkTimer_ += 1.0f / 60.0f;
-    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime);
-}
-
-void Enemy::BehaviorShooterUpdate() {
-    if (!target_) {
-        BehaviorPatrolUpdate();
-        return;
-    }
-
-    // 距離を測って射程内ならタイマーでショット（現在はダミー）
-    KamataEngine::Vector3 playerPos = target_->GetWorldPosition();
-    float dx = playerPos.x - worldTransform_.translation_.x;
-    float dz = playerPos.z - worldTransform_.translation_.z;
-    float dist = std::sqrt(dx * dx + dz * dz);
-
-    // 向き: 移動方向に合わせる（プレイヤー方向に合わせない）
-    if (std::abs(velocity_.x) > 1e-6f) {
-        worldTransform_.rotation_.y = (velocity_.x > 0) ? (0.0f + kModelFacingOffsetY) : (std::numbers::pi_v<float> + kModelFacingOffsetY);
-    }
-
-    // 射撃ロジック（タイマーのみ）
-    // NOTE: 弾の生成処理は未実装のままにする（後で実装予定）
-    deathTimer_ += 1.0f / 60.0f; // reuse timer as shoot timer
-    if (dist <= kShootRange && deathTimer_ >= kShootInterval) {
-        // TODO: 実際の弾生成処理をここに実装する
-        // 現在は発射タイミングだけをリセットしておく
-        deathTimer_ = 0.0f;
-    }
+    worldTransform_.translation_.y = baseY_ + std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatBobAmplitude;
+    // 少しだけ前後に傾ける（人魂の揺れ感）
+    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatTiltAmplitude;
 }
 
     
@@ -240,11 +248,11 @@ void Enemy::BehaviorRootUpdate() {
 	// 移動
 	worldTransform_.translation_ += velocity_;
 
-	// タイマーを加算
-	walkTimer_ += 1.0f / 60.0f;
-
-	// 回転アニメーション
-	worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime);
+    // タイマーを加算して上下に浮遊させる
+    walkTimer_ += 1.0f / 60.0f;
+    worldTransform_.translation_.y = baseY_ + std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatBobAmplitude;
+    // 少しだけ前後に傾ける（人魂の揺れ感）
+    worldTransform_.rotation_.x = std::sin(std::numbers::pi_v<float> * 2.0f * walkTimer_ / kWalkMotionTime) * kFloatTiltAmplitude;
 }
 
 void Enemy::BehaviorDeathUpdate() {
@@ -267,3 +275,24 @@ void Enemy::BehaviorDeathUpdate() {
 void Enemy::BehaviorRootInitialize() {}
 
 void Enemy::BehaviorDeathInitialize() {}
+
+void Enemy::KeepWithinStage(MapChipField* mapChipField) {
+    if (!mapChipField) return;
+
+    // Clamp X within [0, width)
+    const uint32_t w = mapChipField->GetNumBlockHorizontal();
+    const uint32_t h = mapChipField->GetNumBlockVirtical();
+
+    // Compute min/max world coordinates from map bounds
+    KamataEngine::Vector3 leftBottom = mapChipField->GetMapChipPositionByIndex(0, h - 1);
+    KamataEngine::Vector3 rightTop = mapChipField->GetMapChipPositionByIndex(w - 1, 0);
+
+    float minX = leftBottom.x - 0.5f; // small padding
+    float maxX = rightTop.x + 0.5f;
+    float minY = rightTop.y - 0.5f;
+    float maxY = leftBottom.y + 0.5f;
+
+    // Clamp translation
+    worldTransform_.translation_.x = std::clamp(worldTransform_.translation_.x, minX, maxX);
+    worldTransform_.translation_.y = std::clamp(worldTransform_.translation_.y, minY, maxY);
+}

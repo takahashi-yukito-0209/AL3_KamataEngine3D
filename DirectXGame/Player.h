@@ -114,15 +114,18 @@ private:
 	KamataEngine::Vector3 velocity_ = {};
 
     // 加速度
-    static inline const float kAcceleration = 0.06f;
+    // 加速度 (地上)
+    static inline const float kAcceleration = 0.08f;
 
-	// 非入力時の摩擦係数
-	// 非入力時の摩擦係数
-	// 慣性を弱めて操作感を良くするため、減衰を強める
-	static inline const float kAttenuation = 0.12f;
+    // 空中での横操作係数 (地上加速度に対する倍率)
+    static inline const float kAirControlMultiplier = 0.4f;
+
+    // 非入力時の摩擦係数
+    // 慣性を弱めて操作感を良くするための減衰
+    static inline const float kAttenuation = 0.08f;
 
     // 最大速度
-    static inline const float kLimitRunSpeed = 0.22f;
+    static inline const float kLimitRunSpeed = 0.28f;
 
 	// 初期の向いている方向
 	LRDirection lrDirection_ = LRDirection::kRight;
@@ -256,4 +259,24 @@ private:
 	float doubleJumpTimer_ = 0.0f;
 	// 回転開始時のX回転角
 	float doubleJumpStartRotationX_ = 0.0f;
+
+	// --- コヨーテタイム(エッジでの猶予) ---
+	// 地面を離れた直後にジャンプ入力を受け付ける猶予時間[秒]
+	static inline const float kCoyoteTime = 0.12f;
+
+	// コヨーテタイム用タイマー
+	float coyoteTimer_ = 0.0f;
+
+	// --- ジャンプバッファ(着地直前の入力を保存) ---
+	// 着地直前のジャンプ入力を受け付ける猶予時間[秒]
+	static inline const float kJumpBufferTime = 0.12f;
+
+	// ジャンプバッファ用タイマー
+	float jumpBufferTimer_ = 0.0f;
+
+	// ジャンプカット倍率(ジャンプキーを離したときに上昇を抑える)
+	static inline const float kJumpCutMultiplier = 0.5f;
+
+	// ジャンプキーの保持状態(前フレーム)
+	bool jumpHeld_ = false;
 };

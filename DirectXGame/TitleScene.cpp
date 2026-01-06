@@ -32,6 +32,11 @@ void TitleScene::Initialize() {
 	fade_ = new Fade();
 	fade_->Initialize();
 	fade_->Start(Fade::Status::FadeIn, 1.0f);
+
+	// 背景テクスチャを読み込みスプライトを作成（ゲームシーンと同じテクスチャを使用）
+	backgroundTextureHandle_ = TextureManager::Load("skydome/sky_sphere.png");
+	backgroundSprite_ = Sprite::Create(backgroundTextureHandle_, Vector2{});
+	backgroundSprite_->SetSize(Vector2(WinApp::kWindowWidth, WinApp::kWindowHeight));
 }
 
 void TitleScene::Update() {
@@ -89,6 +94,15 @@ void TitleScene::Draw() {
 	// コマンドリストの取得
 	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandList();
 
+	// 背景スプライトを先に描画してから3Dを描画する
+	Sprite::PreDraw(commandList);
+	if (backgroundSprite_) backgroundSprite_->Draw();
+	Sprite::PostDraw();
+
+	// スプライト描画で深度バッファが汚れている可能性があるためクリア
+	// これで3Dがスプライトの前に正しく描画される
+	dxCommon_->ClearDepthBuffer();
+
 	Model::PreDraw(commandList);
 
 	modelTitle_->Draw(worldTransformTitle_, camera_);
@@ -104,4 +118,7 @@ TitleScene::~TitleScene() {
 	delete modelPlayer_;
 	delete modelTitle_;
 	delete fade_;
+
+	// スプライト解放
+	delete backgroundSprite_;
 }

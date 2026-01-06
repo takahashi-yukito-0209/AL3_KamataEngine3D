@@ -78,13 +78,15 @@ void GameScene::Initialize() {
 	// 敵キャラ3Dモデルの生成
 	modelEnemy_ = Model::CreateFromOBJ("enemy", true);
 
-    // (projectile and enemy attack effect models removed)
+    // （射撃物や敵の攻撃エフェクト用モデルは削除済み）
 
     // 敵の生成と座標設定、初期化
     // 1: パトロール
     {
         Enemy* e = new Enemy();
         Vector3 pos = mapChipField_->GetMapChipPositionByIndex(10, 18);
+        // 生成位置を少し上にずらす
+        pos.y += 0.2f;
         e->Initialize(modelEnemy_, &camera_, pos);
         e->SetGameScene(this);
         e->SetPattern(Enemy::Pattern::kPatrol);
@@ -98,22 +100,42 @@ void GameScene::Initialize() {
     {
         Enemy* e = new Enemy();
         Vector3 pos = mapChipField_->GetMapChipPositionByIndex(14, 18);
+        // 生成位置を少し上にずらす
+        pos.y += 0.2f;
         e->Initialize(modelEnemy_, &camera_, pos);
         e->SetGameScene(this);
         e->SetPattern(Enemy::Pattern::kChase);
         e->SetTarget(player_);
         enemies_.push_back(e);
     }
-    // 3: 射手
+
+    // 3: 停止（浮遊のみ）
     {
         Enemy* e = new Enemy();
-        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(18, 18);
+        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(16, 18);
+        // 生成位置を少し上にずらす
+        pos.y += 0.2f;
         e->Initialize(modelEnemy_, &camera_, pos);
         e->SetGameScene(this);
-        e->SetPattern(Enemy::Pattern::kShooter);
+        e->SetPattern(Enemy::Pattern::kStop);
         e->SetTarget(player_);
         enemies_.push_back(e);
     }
+
+    // 4: 飛行
+    {
+        Enemy* e = new Enemy();
+        // 生成位置: 下側より少し上から出現するように Y を少し上げる
+        Vector3 pos = mapChipField_->GetMapChipPositionByIndex(20, 14);
+        pos.y += 0.2f;
+        e->Initialize(modelEnemy_, &camera_, pos);
+        e->SetGameScene(this);
+        e->SetPattern(Enemy::Pattern::kFly);
+        e->SetTarget(player_);
+        enemies_.push_back(e);
+    }
+
+    // （逃走する敵は無し）
 
 	// 仮生成処理
 	modelDeathParticles_ = Model::CreateFromOBJ("deathParticle", true);
@@ -139,6 +161,7 @@ void GameScene::Update() {
 
 	switch (phase_) {
 	case Phase::kFadeIn:
+	{
 		// フェードの更新
 		fade_->Update();
 		if (fade_->IsFinished()) {
@@ -156,8 +179,18 @@ void GameScene::Update() {
 		player_->Update();
 
 		// 敵更新
+		// プレイヤーが死んだ or ゴール到達(クリア) のときは敵の動きを止める
+		// 敵を停止させるのはプレイヤーが死亡したとき、またはクリア時
+		bool stopEnemies = (player_ && (player_->IsDead() || player_->HasReachedGoal()));
 		for (Enemy* enemy : enemies_) {
-			enemy->Update();
+			if (stopEnemies) {
+				// プレイヤー死亡・クリア時は移動を止めて浮遊アニメーションのみ行う
+				enemy->BehaviorStopUpdate();
+			} else {
+				enemy->Update();
+			}
+			// 常にステージ内に収める補正は行う
+			enemy->KeepWithinStage(mapChipField_);
 		}
 
 #ifdef _DEBUG
@@ -196,7 +229,9 @@ void GameScene::Update() {
 		}
 
 		break;
+	}
 	case Phase::kPlay:
+	{
 		// ゲームプレイフェーズの処理
 
 		// 自キャラの更新
@@ -209,8 +244,18 @@ void GameScene::Update() {
 		cameraController_->Update();
 
 		// 敵更新
+		// プレイヤーが死んだ or ゴール到達(クリア) のときは敵の動きを止める
+		// 敵を停止させるのはプレイヤーが死亡したとき、またはクリア時
+		bool stopEnemies = (player_ && (player_->IsDead() || player_->HasReachedGoal()));
 		for (Enemy* enemy : enemies_) {
-			enemy->Update();
+			if (stopEnemies) {
+				// プレイヤー死亡・クリア時は移動を止めて浮遊アニメーションのみ行う
+				enemy->BehaviorStopUpdate();
+			} else {
+				enemy->Update();
+			}
+			// 常にステージ内に収める補正は行う
+			enemy->KeepWithinStage(mapChipField_);
 		}
 
 		// ヒットエフェクト描画
@@ -260,8 +305,10 @@ void GameScene::Update() {
 		CheckAllCollisions();
 
 		break;
+	}
 
 	case Phase::kDeath:
+	{
 		// デス演出フェーズの処理
 
 		if (deathParticles_ && deathParticles_->IsFinished()) {
@@ -275,8 +322,18 @@ void GameScene::Update() {
 		cameraController_->Update();
 
 		// 敵更新
+		// プレイヤーが死んだ or ゴール到達(クリア) のときは敵の動きを止める
+		// 敵を停止させるのはプレイヤーが死亡したとき、またはクリア時
+		bool stopEnemies = (player_ && (player_->IsDead() || player_->HasReachedGoal()));
 		for (Enemy* enemy : enemies_) {
-			enemy->Update();
+			if (stopEnemies) {
+				// プレイヤー死亡・クリア時は移動を止めて浮遊アニメーションのみ行う
+				enemy->BehaviorStopUpdate();
+			} else {
+				enemy->Update();
+			}
+			// 常にステージ内に収める補正は行う
+			enemy->KeepWithinStage(mapChipField_);
 		}
 
 		// デスパーティクル更新
@@ -320,7 +377,9 @@ void GameScene::Update() {
 		}
 
 		break;
+	}
 	case Phase::kFadeOut:
+	{
 		// フェードの更新
 		fade_->Update();
 		if (fade_->IsFinished()) {
@@ -334,8 +393,18 @@ void GameScene::Update() {
 		cameraController_->Update();
 
 		// 敵更新
+		// プレイヤーが死んだ or ゴール到達(クリア) のときは敵の動きを止める
+		// 敵を停止させるのはプレイヤーが死亡したとき、またはクリア時
+		bool stopEnemies = (player_ && (player_->IsDead() || player_->HasReachedGoal()));
 		for (Enemy* enemy : enemies_) {
-			enemy->Update();
+			if (stopEnemies) {
+				// プレイヤー死亡・クリア時は移動を止めて浮遊アニメーションのみ行う
+				enemy->BehaviorStopUpdate();
+			} else {
+				enemy->Update();
+			}
+			// 常にステージ内に収める補正は行う
+			enemy->KeepWithinStage(mapChipField_);
 		}
 
 		// ブロックの更新
@@ -355,6 +424,7 @@ void GameScene::Update() {
 
 		break;
 	}
+	}
 
 	// デスフラグの立った敵を削除
 	enemies_.remove_if([](Enemy* enemy) {
@@ -366,7 +436,7 @@ void GameScene::Update() {
 	});
 
 	// 死んだプロジェクタイルの削除
-    // projectiles disabled: no runtime projectile management
+    // プロジェクタイル無効化: ランタイムでの弾管理は行っていない
 }
 
 void GameScene::Draw() {
@@ -488,11 +558,6 @@ void GameScene::LoadStage(int stageIndex) {
 void GameScene::CreateHitEffect(const KamataEngine::Vector3 position) { 
 	HitEffect* newHitEffect = HitEffect::Create(position);
 	hitEffects_.push_back(newHitEffect);
-}
-
-void GameScene::CreateProjectile(const KamataEngine::Vector3 position, const KamataEngine::Vector3 direction) {
-    // Projectile creation disabled: shooter logic currently does not spawn projectiles.
-    (void)position; (void)direction;
 }
 
 GameScene::~GameScene() {

@@ -37,6 +37,19 @@ void Player::SetPosition(const KamataEngine::Vector3& position) {
 
 void Player::Update() {
 
+    // コヨーテタイムのカウントダウン(地面にいない時のみ)
+    if (!onGround_ && coyoteTimer_ > 0.0f) {
+        coyoteTimer_ -= 1.0f / 60.0f;
+        if (coyoteTimer_ < 0.0f) coyoteTimer_ = 0.0f;
+    }
+
+    // ジャンプバッファのカウントダウン
+    if (jumpBufferTimer_ > 0.0f) {
+        jumpBufferTimer_ -= 1.0f / 60.0f;
+        if (jumpBufferTimer_ < 0.0f) jumpBufferTimer_ = 0.0f;
+    }
+
+
 	if (behaviorRequest_ != Behavior::kUnknown) {
 		// 振るまいを変更する
 		behavior_ = behaviorRequest_;
@@ -357,6 +370,11 @@ void Player::BehaviorAttackInitialize() {
 
 void Player::InputMove() {
 
+	// ジャンプバッファ: ジャンプキーが押されたらタイマーをセット
+	if (Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP)) {
+		jumpBufferTimer_ = kJumpBufferTime;
+	}
+
 	// 接地状態
 	if (onGround_) {
 
@@ -420,12 +438,16 @@ void Player::InputMove() {
 			velocity_.x *= (1.0f - kAttenuation);
 		}
 
-        // 一段目ジャンプ (Wキーまたは上矢印キー)
-        if (Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP)) {
-			velocity_.y = kJumpAcceleration;
-			onGround_ = false;
-			jumpCount_ = 1;
-		}
+        // 一段目ジャンプ (バッファが残っていればジャンプ)
+        if (jumpBufferTimer_ > 0.0f) {
+            velocity_.y = kJumpAcceleration;
+            onGround_ = false;
+            jumpCount_ = 1;
+            // 地面を離れた後のコヨーテタイムを開始
+            coyoteTimer_ = kCoyoteTime;
+            // バッファを消費
+            jumpBufferTimer_ = 0.0f;
+        }
 
 	} else {
 		// 落下速度
@@ -434,10 +456,17 @@ void Player::InputMove() {
 		// 落下速度制限
 		velocity_.y = std::max(velocity_.y, -kLimitFallSpeed);
 
-        // --- 二段ジャンプ ---
-        if ((Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP)) && jumpCount_ == 1) {
+        // --- 二段ジャンプ & コヨーテタイムからのジャンプ ---
+        if ((Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP) || jumpBufferTimer_ > 0.0f) && (jumpCount_ == 1 || coyoteTimer_ > 0.0f)) {
 			velocity_.y = kJumpAcceleration;
-			jumpCount_ = 2;
+			// ジャンプ回数を進めるが、コヨーテからのジャンプでは二段ジャンプ扱いにしない
+			if (jumpCount_ == 1) {
+				jumpCount_ = 2;
+			}
+			// コヨーテタイムを消費
+			coyoteTimer_ = 0.0f;
+			// バッファを消費
+			jumpBufferTimer_ = 0.0f;
 
 			// 二段ジャンプ開始時に縦回転(クルン)を開始する
 			isDoubleJumpFlip_ = true;
@@ -445,6 +474,45 @@ void Player::InputMove() {
 			doubleJumpStartRotationX_ = worldTransform_.rotation_.x;
 		}
 	
+
+
+	// --- 空中での横移動制御 ---
+	// 空中でも左右入力で少しだけ制御できるようにする
+	if (!onGround_) {
+		Vector3 airAccel = {};
+		if (Input::GetInstance()->PushKey(DIK_RIGHT) || Input::GetInstance()->PushKey(DIK_D)) {
+			if (velocity_.x < 0.0f) velocity_.x *= (1.0f - kAttenuation);
+			airAccel.x += kAcceleration * kAirControlMultiplier;
+			if (lrDirection_ != LRDirection::kRight) {
+				lrDirection_ = LRDirection::kRight;
+				turnFirstRotationY_ = worldTransform_.rotation_.y;
+				turnTimer_ = kTimeTurn;
+			}
+		} else if (Input::GetInstance()->PushKey(DIK_LEFT) || Input::GetInstance()->PushKey(DIK_A)) {
+			if (velocity_.x > 0.0f) velocity_.x *= (1.0f - kAttenuation);
+			airAccel.x -= kAcceleration * kAirControlMultiplier;
+			if (lrDirection_ != LRDirection::kLeft) {
+				lrDirection_ = LRDirection::kLeft;
+				turnFirstRotationY_ = worldTransform_.rotation_.y;
+				turnTimer_ = kTimeTurn;
+			}
+		} else {
+			// 空中での非入力時はわずかに減衰
+			velocity_.x *= (1.0f - kAttenuation * 0.5f);
+		}
+		velocity_ += airAccel;
+		velocity_.x = std::clamp(velocity_.x, -kLimitRunSpeed, kLimitRunSpeed);
+	}
+
+    // ジャンプカット: ジャンプキー離したら上昇を抑える
+    bool jumpNow = Input::GetInstance()->PushKey(DIK_W) || Input::GetInstance()->PushKey(DIK_UP) || Input::GetInstance()->TriggerKey(DIK_W) || Input::GetInstance()->TriggerKey(DIK_UP);
+    // edge: was held previous frame and not held now -> release
+    if (jumpHeld_ && !jumpNow && velocity_.y > 0.0f) {
+        velocity_.y *= kJumpCutMultiplier;
+    }
+    // 更新: 現在の保持状態を保存
+    jumpHeld_ = jumpNow;
+
 	}
 }
 

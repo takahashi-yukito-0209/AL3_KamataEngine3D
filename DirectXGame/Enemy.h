@@ -5,6 +5,7 @@
 // 前方宣言
 class Player;
 class GameScene;
+class MapChipField;
 
 class Enemy {
 public:
@@ -48,11 +49,22 @@ public:
 	// 追跡動作更新
 	void BehaviorChaseUpdate();
 
-	// 射撃動作更新
-	void BehaviorShooterUpdate();
+	// 停止（ただし浮遊アニメーションあり）
+	void BehaviorStopUpdate();
+
+    // 飛行（上下移動）
+    void BehaviorFlyUpdate();
+
+	// 近づくと逃げる
+
+
+
 
 	// デス演出更新
 	void BehaviorDeathUpdate();
+
+	// ステージ外に出ないよう位置を補正する
+	void KeepWithinStage(MapChipField* mapChipField);
 
 	// 歩行初期化
 	void BehaviorRootInitialize();
@@ -71,7 +83,8 @@ public:
 	enum class Pattern {
 		kPatrol,
 		kChase,
-		kShooter,
+		kStop,
+		kFly,
 	};
 
 	void SetPattern(Pattern p) { pattern_ = p; }
@@ -98,11 +111,16 @@ private:
 	// 追跡時の速さ
 	static inline const float kChaseSpeed = 0.035f;
 
-	// 射撃レンジ
-	static inline const float kShootRange = 8.0f;
+    // 飛行（上下）振幅
+    static inline const float kFlyAmplitude = 1.5f;
 
-	// 射撃間隔[秒]
-	static inline const float kShootInterval = 2.0f;
+    // 飛行（上下）速度係数
+    static inline const float kFlySpeed = 2.0f;
+
+	// 逃走時の速さ
+
+
+
 
 	// 速度
 	KamataEngine::Vector3 velocity_ = {};
@@ -116,8 +134,20 @@ private:
 	// アニメーションの周期となる時間[秒]
 	static inline const float kWalkMotionTime = 1.0f;
 
+	// 浮遊（人魂っぽい）上下振幅
+	static inline const float kFloatBobAmplitude = 0.3f;
+
+	// 浮遊時の僅かな前後傾き（ラジアン、約5度）
+	static inline const float kFloatTiltAmplitude = 0.0872664626f;
+
 	// 経過時間
 	float walkTimer_ = 0.0f;
+
+	// 基準となるY座標（初期位置のY）
+	float baseY_ = 0.0f;
+
+    // （飛行）上下運動の基準高さ
+    float baseHeight_ = 0.0f;
 
 	// キャラクターの当たり判定サイズ
 	static inline const float kWidth = 0.8f;

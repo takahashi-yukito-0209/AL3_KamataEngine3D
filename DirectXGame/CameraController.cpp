@@ -32,16 +32,18 @@ void CameraController::Update() {
     camera_->translation_ += cameraVelocity_ * (1.0f / 60.0f);
 
     // 移動範囲制限: まずはターゲットマージンに基づく制限
-    camera_->translation_.x = max(camera_->translation_.x, destination_.x + targetMargin.left);
-    camera_->translation_.x = min(camera_->translation_.x, destination_.x + targetMargin.right);
-    camera_->translation_.y = max(camera_->translation_.y, destination_.y + targetMargin.bottom);
-    camera_->translation_.y = min(camera_->translation_.y, destination_.y + targetMargin.top);
+    camera_->translation_.x = std::clamp(camera_->translation_.x, destination_.x + targetMargin.left, destination_.x + targetMargin.right);
+    camera_->translation_.y = std::clamp(camera_->translation_.y, destination_.y + targetMargin.bottom, destination_.y + targetMargin.top);
 
     // ワールドの移動範囲制限
-    camera_->translation_.x = max(camera_->translation_.x, movableArea_.left);
-    camera_->translation_.x = min(camera_->translation_.x, movableArea_.right);
-    camera_->translation_.y = min(camera_->translation_.y, movableArea_.bottom);
-    camera_->translation_.y = max(camera_->translation_.y, movableArea_.top);
+    camera_->translation_.x = std::clamp(camera_->translation_.x, movableArea_.left, movableArea_.right);
+    camera_->translation_.y = std::clamp(camera_->translation_.y, movableArea_.bottom, movableArea_.top);
+
+    // 小さい速度はゼロにしてジャッターを減らす
+    const float kVelocityEpsilon = 0.0001f;
+    if (std::abs(cameraVelocity_.x) < kVelocityEpsilon) cameraVelocity_.x = 0.0f;
+    if (std::abs(cameraVelocity_.y) < kVelocityEpsilon) cameraVelocity_.y = 0.0f;
+    if (std::abs(cameraVelocity_.z) < kVelocityEpsilon) cameraVelocity_.z = 0.0f;
 	
 	//行列を更新
 	camera_->UpdateMatrix();

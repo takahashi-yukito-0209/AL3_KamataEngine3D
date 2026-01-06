@@ -50,6 +50,10 @@ private:
 	//フェード
 	Fade* fade_ = nullptr;
 
+	// 背景スプライト（ゲームシーンと同じテクスチャを流用）
+	uint32_t backgroundTextureHandle_ = 0;
+	KamataEngine::Sprite* backgroundSprite_ = nullptr;
+
 	//現在のフェーズ
 	Phase phase_ = Phase::kFadeIn;
 };
