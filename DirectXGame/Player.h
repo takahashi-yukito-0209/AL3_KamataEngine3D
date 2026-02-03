@@ -115,17 +115,17 @@ private:
 
     // 加速度
     // 加速度 (地上)
-    static inline const float kAcceleration = 0.08f;
+    static inline const float kAcceleration = 0.05f;
 
     // 空中での横操作係数 (地上加速度に対する倍率)
     static inline const float kAirControlMultiplier = 0.4f;
 
     // 非入力時の摩擦係数
     // 慣性を弱めて操作感を良くするための減衰
-    static inline const float kAttenuation = 0.08f;
+    static inline const float kAttenuation = 0.12f;
 
     // 最大速度
-    static inline const float kLimitRunSpeed = 0.28f;
+    static inline const float kLimitRunSpeed = 0.18f;
 
 	// 初期の向いている方向
 	LRDirection lrDirection_ = LRDirection::kRight;

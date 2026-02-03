@@ -53,14 +53,15 @@ private:
 	//  座標補間割合(未使用 - 旧式補間)
 	static inline const float kInterpolationRate = 0.06f;
 
-	//  速度掛け率
-	// 追従先の速度影響を少し下げて自然にする
-	static inline const float kVelocityBias = 18.0f;
+    //  速度掛け率
+    // 追従先の速度影響を下げてよりゆったりとする
+    static inline const float kVelocityBias = 8.0f;
 
-	// カメラ用スプリング定数(振動数)
-	static inline const float kSpringOmega = 12.0f;
-	// 減衰係数(臨界減衰=1.0)
-	static inline const float kSpringDamping = 1.0f;
+    // カメラ用スプリング定数(振動数)
+    // 小さくすると追従がゆったりになる
+    static inline const float kSpringOmega = 6.0f;
+    // 減衰係数(臨界減衰=1.0)
+    static inline const float kSpringDamping = 1.2f;
 
 	// カメラ速度(スプリングでの速度)
 	KamataEngine::Vector3 cameraVelocity_ = {0.0f, 0.0f, 0.0f};
