@@ -52,5 +52,19 @@ public:
 
 	KamataEngine::Vector3 Lerp(const KamataEngine::Vector3& v1, const KamataEngine::Vector3& v2, float t);
 
+	// Quaternion utilities (minimal)
+	struct Quaternion {
+		float x, y, z, w;
+	};
+
+	// from yaw (rotation around Y)
+	Quaternion FromYaw(float yaw);
+
+	// slerp between two quaternions
+	Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t);
+
+	// convert quaternion to yaw angle (radians)
+	float ToYaw(const Quaternion& q);
+
 	bool IsCollision(const AABB& aabb1, const AABB& aabb2);
 };

@@ -161,7 +161,12 @@ void Enemy::BehaviorPatrolUpdate() {
 
         // 向き: 常に移動方向に合わせる（プレイヤー方向に合わせない）
         if (std::abs(velocity_.x) > 1e-6f) {
-            worldTransform_.rotation_.y = (velocity_.x > 0) ? 0.0f + kModelFacingOffsetY : std::numbers::pi_v<float> + kModelFacingOffsetY;
+            float targetYaw = (velocity_.x > 0) ? 0.0f + kModelFacingOffsetY : std::numbers::pi_v<float> + kModelFacingOffsetY;
+            // slerp from current yaw to targetYaw for smooth rotation
+            Math::Quaternion q0 = math_.FromYaw(worldTransform_.rotation_.y);
+            Math::Quaternion q1 = math_.FromYaw(targetYaw);
+            Math::Quaternion qm = math_.Slerp(q0, q1, 0.15f);
+            worldTransform_.rotation_.y = math_.ToYaw(qm);
         }
     }
 }
@@ -184,9 +189,13 @@ void Enemy::BehaviorChaseUpdate() {
     // lerp でスムーズに中心高さをプレイヤーに近づける
     baseY_ = std::lerp(baseY_, playerPos.y, 0.02f);
 
-    // 向き: 移動方向に合わせる
+    // 向き: 移動方向に合わせる（滑らかに）
     if (std::abs(velocity_.x) > 1e-6f) {
-        worldTransform_.rotation_.y = (velocity_.x > 0) ? 0.0f + kModelFacingOffsetY : std::numbers::pi_v<float> + kModelFacingOffsetY;
+        float targetYaw = (velocity_.x > 0) ? 0.0f + kModelFacingOffsetY : std::numbers::pi_v<float> + kModelFacingOffsetY;
+        Math::Quaternion q0 = math_.FromYaw(worldTransform_.rotation_.y);
+        Math::Quaternion q1 = math_.FromYaw(targetYaw);
+        Math::Quaternion qm = math_.Slerp(q0, q1, 0.12f);
+        worldTransform_.rotation_.y = math_.ToYaw(qm);
     }
 
     // 浮遊アニメーション（上下に bob ）を baseY_ を中心に適用
@@ -308,7 +317,7 @@ void Enemy::KeepWithinStage(MapChipField* mapChipField) {
         if (idx.xIndex + 1 < w) {
             if (mapChipField->GetMapChipTypeByIndex(idx.xIndex + 1, idx.yIndex) == MapChipType::kBlock) {
                 velocity_.x = -velocity_.x;
-                // 向きを即座に反転
+                // 向きを即座に反転（短時間で十分に回転するため直接セット）
                 worldTransform_.rotation_.y = std::numbers::pi_v<float> + kModelFacingOffsetY;
             }
         }

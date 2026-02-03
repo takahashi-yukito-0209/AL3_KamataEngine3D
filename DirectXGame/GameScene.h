@@ -11,6 +11,9 @@
 #include "math.h"
 #include <vector>
 #include <string>
+#include <list>
+
+class Ghost;
 
 // ゲームシーン
 class GameScene {
@@ -137,5 +140,21 @@ private:
 
 	//ヒットエフェクト用モデル
 	KamataEngine::Model* modelEffect_ = nullptr;
+
+    // ゴースト録画用バッファ（フレームごとの位置とY回転）
+    struct GhostRecord { KamataEngine::Vector3 position; float rotY; };
+    std::vector<GhostRecord> ghostRecording_;
+
+	// ゴースト一覧
+	std::list<Ghost*> ghosts_;
+
+    // ゴーストのオブジェクトプール
+    std::vector<Ghost*> ghostPool_;
+
+	// 録画中フラグ
+	bool isRecording_ = false;
+
+    // UIスプライト（右上表示）
+    KamataEngine::Sprite* uiSprite_ = nullptr;
 
 };

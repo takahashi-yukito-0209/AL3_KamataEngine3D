@@ -1,11 +1,12 @@
 #include "GameScene.h"
 #include <random>
+#include "Ghost.h"
 
 using namespace KamataEngine;
 
 void GameScene::Initialize() {
 	// ファイル名を指定してテクスチャを読み込む
-	textureHandle_ = TextureManager::Load("sample.png");
+	textureHandle_ = TextureManager::Load("UI.png");
 
 	// 3Dモデルの生成
 	modelBlock_ = Model::CreateFromOBJ("block", true);
@@ -166,14 +167,63 @@ void GameScene::Initialize() {
 	modelEffect_ = Model::CreateFromOBJ("plane", true);
 	HitEffect::SetModel(modelEffect_);
 	HitEffect::SetCamera(&camera_);
+
+	// UIスプライトの作成（右上）
+	// 例としてsample.pngの一部を使うためにテクスチャを既にロードしているtextureHandle_を使う
+	uiSprite_ = KamataEngine::Sprite::Create(textureHandle_, KamataEngine::Vector2{});
+	if (uiSprite_) {
+		// サイズと位置を設定（右上に表示）
+		// サイズを少し大きくする
+		const float uiWidth = 192.0f;
+		const float uiHeight = 96.0f;
+		uiSprite_->SetSize(KamataEngine::Vector2{uiWidth, uiHeight});
+		// 右上に配置するためにウィンドウサイズを考慮した位置に移動
+		uiSprite_->SetPosition(KamataEngine::Vector2{static_cast<float>(KamataEngine::WinApp::kWindowWidth) - uiWidth - 10.0f, 10.0f});
+	}
 }
 
 void GameScene::Update() {
 
-	// フェーズ切り替え
-	ChangePhase();
+    // フェーズ切り替え
+    ChangePhase();
 
-	switch (phase_) {
+    // 録画トグル: Rキーで録画開始/停止（どのフェーズでも利用可能）
+    if (Input::GetInstance()->TriggerKey(DIK_R)) {
+        if (!isRecording_) {
+            // 録画開始
+            ghostRecording_.clear();
+            isRecording_ = true;
+        } else {
+            // 録画停止->ゴースト生成
+            isRecording_ = false;
+            if (!ghostRecording_.empty()) {
+                    // オブジェクトプールから取得
+                    Ghost* g = nullptr;
+                    if (!ghostPool_.empty()) {
+                        g = ghostPool_.back();
+                        ghostPool_.pop_back();
+                    } else {
+                        g = new Ghost();
+                    }
+                    // 録画データを Ghost::Frame 配列に変換して渡す
+                    std::vector<Ghost::Frame> frames;
+                    frames.reserve(ghostRecording_.size());
+                    for (const auto& rec : ghostRecording_) {
+                        Ghost::Frame f;
+                        f.position = rec.position;
+                        f.rotY = rec.rotY;
+                        frames.push_back(f);
+                    }
+                    g->Initialize(modelPlayer_, &camera_, frames);
+                    ghosts_.push_back(g);
+            }
+        }
+    }
+
+    // 録画中はプレイヤー位置を保存
+    // 保存は Update 内の各フェーズで行う（フェーズ毎に位置保存が必要な場合があるため）
+
+    switch (phase_) {
 	case Phase::kFadeIn:
 	{
 		// フェードの更新
@@ -449,6 +499,31 @@ void GameScene::Update() {
 		return false;
 	});
 
+    // 録画中は毎フレームプレイヤーの WorldTransform を保存
+    if (isRecording_ && player_) {
+        GameScene::GhostRecord r;
+        r.position = player_->GetWorldPosition();
+        r.rotY = player_->GetWorldTransform().rotation_.y;
+        ghostRecording_.push_back(r);
+    }
+
+	// ゴーストを更新、終了したものは削除
+	for (Ghost* g : ghosts_) {
+		g->Update();
+	}
+	// 終了したゴーストをオブジェクトプールに戻す
+	auto it = ghosts_.begin();
+	while (it != ghosts_.end()) {
+		Ghost* g = *it;
+		if (g->IsFinished()) {
+			// プールに戻す
+			ghostPool_.push_back(g);
+			it = ghosts_.erase(it);
+		} else {
+			++it;
+		}
+	}
+
 	// 死んだプロジェクタイルの削除
     // プロジェクタイル無効化: ランタイムでの弾管理は行っていない
 }
@@ -490,6 +565,11 @@ void GameScene::Draw() {
 		enemy->Draw();
 	}
 
+	// ゴースト描画
+	for (Ghost* g : ghosts_) {
+		g->Draw();
+	}
+
 
 	// デスパーティクル描画
 	if (deathParticles_) {
@@ -511,6 +591,13 @@ void GameScene::Draw() {
 
 	// 3Dモデル描画後処理
 	Model::PostDraw();
+
+	// UIスプライト描画（左上ではなく右上）
+	if (uiSprite_) {
+		KamataEngine::Sprite::PreDraw(dxCommon->GetCommandList());
+		uiSprite_->Draw();
+		KamataEngine::Sprite::PostDraw();
+	}
 }
 
 void GameScene::GenerateBlocks() {
@@ -618,9 +705,17 @@ GameScene::~GameScene() {
 	//ヒットエフェクト用モデルの解放
 	delete modelEffect_;
 
+	// ゴーストの解放
+	for (Ghost* g : ghosts_) {
+		delete g;
+	}
+	ghosts_.clear();
+
 	// プロジェクタイルの解放
 	// projectiles removed
 
+	// UIスプライト解放
+	delete uiSprite_;
 }
 
 void GameScene::CheckAllCollisions() {

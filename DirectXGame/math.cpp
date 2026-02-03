@@ -1,224 +1,145 @@
 #include "math.h"
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 #include <cmath>
 
 using namespace KamataEngine;
 
-// 1.平行移動行列
 KamataEngine::Matrix4x4 Math::MakeTranslateMatrix(const KamataEngine::Vector3& translate) {
-	Matrix4x4 result = {};
+    Matrix4x4 r = {};
+    r.m[0][0] = 1.0f; r.m[1][1] = 1.0f; r.m[2][2] = 1.0f; r.m[3][3] = 1.0f;
+    r.m[3][0] = translate.x; r.m[3][1] = translate.y; r.m[3][2] = translate.z;
+    return r;
+}
 
-	result = {
-	    1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, translate.x, translate.y, translate.z, 1.0f,
-	};
-
-	return result;
-};
-
-// 2.拡大縮小行列
 KamataEngine::Matrix4x4 Math::MakeScaleMatrix(const KamataEngine::Vector3& scale) {
-	Matrix4x4 result = {};
-
-	result = {
-	    scale.x, 0.0f, 0.0f, 0.0f, 0.0f, scale.y, 0.0f, 0.0f, 0.0f, 0.0f, scale.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-	};
-
-	return result;
-};
-
-// 3.座標変換
-KamataEngine::Vector3 Math::Transform(const KamataEngine::Vector3& vector, const KamataEngine::Matrix4x4& matrix) {
-	Vector3 result;
-	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + matrix.m[3][0];
-	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + matrix.m[3][1];
-	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + matrix.m[3][2];
-	float w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + matrix.m[3][3];
-	assert(w != 0.0f);
-	result.x /= w;
-	result.y /= w;
-	result.z /= w;
-
-	return result;
-};
-
-// 3.行列の積
-KamataEngine::Matrix4x4 Math::Multiply(const KamataEngine::Matrix4x4& m1, const KamataEngine::Matrix4x4& m2) {
-	Matrix4x4 result = {};
-
-	for (int row = 0; row < 4; row++) {
-		for (int column = 0; column < 4; column++) {
-
-			result.m[row][column] = 0;
-
-			for (int k = 0; k < 4; k++) {
-				result.m[row][column] += m1.m[row][k] * m2.m[k][column];
-			}
-		}
-	}
-
-	return result;
+    Matrix4x4 r = {};
+    r.m[0][0] = scale.x; r.m[1][1] = scale.y; r.m[2][2] = scale.z; r.m[3][3] = 1.0f;
+    return r;
 }
 
-// 1.X軸回転行列
 KamataEngine::Matrix4x4 Math::MakeRotateXMatrix(float radian) {
-	Matrix4x4 result = {};
+    Matrix4x4 r = {};
+    r.m[0][0] = 1.0f;
+    r.m[1][1] = std::cos(radian); r.m[1][2] = std::sin(radian);
+    r.m[2][1] = std::sin(-radian); r.m[2][2] = std::cos(radian);
+    r.m[3][3] = 1.0f;
+    return r;
+}
 
-	result = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, std::cos(radian), std::sin(radian), 0.0f, 0.0f, std::sin(-radian), std::cos(radian), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
-
-	return result;
-};
-
-// 2.Y軸回転行列
 KamataEngine::Matrix4x4 Math::MakeRotateYMatrix(float radian) {
-	Matrix4x4 result = {};
+    Matrix4x4 r = {};
+    r.m[0][0] = std::cos(radian); r.m[0][2] = std::sin(-radian);
+    r.m[1][1] = 1.0f;
+    r.m[2][0] = std::sin(radian); r.m[2][2] = std::cos(radian);
+    r.m[3][3] = 1.0f;
+    return r;
+}
 
-	result = {std::cos(radian), 0.0f, std::sin(-radian), 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, std::sin(radian), 0.0f, std::cos(radian), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
-
-	return result;
-};
-
-// 3.Z軸回転行列
 KamataEngine::Matrix4x4 Math::MakeRotateZMatrix(float radian) {
-	Matrix4x4 result = {};
+    Matrix4x4 r = {};
+    r.m[0][0] = std::cos(radian); r.m[0][1] = std::sin(radian);
+    r.m[1][0] = std::sin(-radian); r.m[1][1] = std::cos(radian);
+    r.m[2][2] = 1.0f; r.m[3][3] = 1.0f;
+    return r;
+}
 
-	result = {std::cos(radian), std::sin(radian), 0.0f, 0.0f, std::sin(-radian), std::cos(radian), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+KamataEngine::Matrix4x4 Math::Multiply(const KamataEngine::Matrix4x4& a, const KamataEngine::Matrix4x4& b) {
+    Matrix4x4 r = {};
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            r.m[i][j] = 0.0f;
+            for (int k = 0; k < 4; ++k) r.m[i][j] += a.m[i][k] * b.m[k][j];
+        }
+    }
+    return r;
+}
 
-	return result;
-};
-
-// 3次元アフィン変換行列
 KamataEngine::Matrix4x4 Math::MakeAffineMatrix(const KamataEngine::Vector3& scale, const KamataEngine::Vector3& rotate, const KamataEngine::Vector3& translate) {
-
-	// 回転軸をひとつにまとめる（合成）
-	Matrix4x4 rotateXYZMatrix = Multiply(MakeRotateXMatrix(rotate.x), Multiply(MakeRotateYMatrix(rotate.y), MakeRotateZMatrix(rotate.z)));
-
-	// 回転と拡縮、移動をすべて合成
-	Matrix4x4 result = Multiply(Multiply(MakeScaleMatrix(scale), rotateXYZMatrix), MakeTranslateMatrix(translate));
-
-	return result;
+    Matrix4x4 rotateXYZ = Multiply(MakeRotateXMatrix(rotate.x), Multiply(MakeRotateYMatrix(rotate.y), MakeRotateZMatrix(rotate.z)));
+    return Multiply(Multiply(MakeScaleMatrix(scale), rotateXYZ), MakeTranslateMatrix(translate));
 }
 
-// ワールド行列更新関数
+KamataEngine::Vector3 Math::Transform(const KamataEngine::Vector3& v, const KamataEngine::Matrix4x4& m) {
+    Vector3 r;
+    r.x = v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0] + m.m[3][0];
+    r.y = v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1] + m.m[3][1];
+    r.z = v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2] + m.m[3][2];
+    float w = v.x * m.m[0][3] + v.y * m.m[1][3] + v.z * m.m[2][3] + m.m[3][3];
+    assert(w != 0.0f);
+    r.x /= w; r.y /= w; r.z /= w;
+    return r;
+}
+
 void Math::WorldTransformUpdate(KamataEngine::WorldTransform& worldTransform) {
-	// スケール、回転、平行移動を合成して行列を計算する
-	worldTransform.matWorld_ = MakeAffineMatrix(worldTransform.scale_, worldTransform.rotation_, worldTransform.translation_);
-	// 定数バッファに転送
-	worldTransform.TransferMatrix();
+    worldTransform.matWorld_ = MakeAffineMatrix(worldTransform.scale_, worldTransform.rotation_, worldTransform.translation_);
+    worldTransform.TransferMatrix();
 }
 
-// イージング(easeInOut)
 float Math::easeInOut(float timer, float start, float end) {
-
-	// t を時間の進行として設定し、最大値を1.0fに制限
-	timer = std::clamp(timer, 0.0f, 1.0f);
-
-	// イーズイン・イーズアウト補間を計算
-	float easedT = timer * timer * (3.0f - 2.0f * timer);
-
-	// 補間された位置を計算
-	return (1.0f - easedT) * start + easedT * end;
+    timer = std::clamp(timer, 0.0f, 1.0f);
+    float easedT = timer * timer * (3.0f - 2.0f * timer);
+    return (1.0f - easedT) * start + easedT * end;
 }
 
-// イージング(easeInOut)
 KamataEngine::Vector3 Math::Lerp(const KamataEngine::Vector3& v1, const KamataEngine::Vector3& v2, float t) {
-
-	t = std::clamp(t, 0.0f, 1.0f);
-
-	return {
-	    (1.0f - t) * v1.x + t * v2.x,
-	    (1.0f - t) * v1.y + t * v2.y,
-	    (1.0f - t) * v1.z + t * v2.z,
-	};
+    t = std::clamp(t, 0.0f, 1.0f);
+    return {(1.0f - t) * v1.x + t * v2.x, (1.0f - t) * v1.y + t * v2.y, (1.0f - t) * v1.z + t * v2.z};
 }
 
 bool Math::IsCollision(const AABB& aabb1, const AABB& aabb2) {
-	return (aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) && // x軸
-	       (aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) && // y軸
-	       (aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z);   // z軸
+    return (aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) &&
+           (aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) &&
+           (aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z);
 }
 
-// 加算
-KamataEngine::Vector3 operator+(const KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
-	Vector3 result;
-
-	result.x = lhv.x + rhv.x;
-	result.y = lhv.y + rhv.y;
-	result.z = lhv.z + rhv.z;
-
-	return result;
+// Quaternion utilities (Math::Quaternion is declared in math.h)
+Math::Quaternion Math::FromYaw(float yaw) {
+    Math::Quaternion q;
+    float half = yaw * 0.5f;
+    q.x = 0.0f; q.y = std::sin(half); q.z = 0.0f; q.w = std::cos(half);
+    return q;
 }
 
-// 減算
-KamataEngine::Vector3 operator-(const KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
-	Vector3 result;
-
-	result.x = lhv.x - rhv.x;
-	result.y = lhv.y - rhv.y;
-	result.z = lhv.z - rhv.z;
-
-	return result;
+Math::Quaternion Math::Slerp(const Math::Quaternion& q0, const Math::Quaternion& q1, float t) {
+    float tt = std::clamp(t, 0.0f, 1.0f);
+    float dot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
+    Math::Quaternion b = q1;
+    if (dot < 0.0f) { dot = -dot; b.x = -b.x; b.y = -b.y; b.z = -b.z; b.w = -b.w; }
+    const float DOT_THRESHOLD = 0.9995f;
+    Math::Quaternion result;
+    if (dot > DOT_THRESHOLD) {
+        result.x = q0.x + tt * (b.x - q0.x);
+        result.y = q0.y + tt * (b.y - q0.y);
+        result.z = q0.z + tt * (b.z - q0.z);
+        result.w = q0.w + tt * (b.w - q0.w);
+        float len = std::sqrt(result.x*result.x + result.y*result.y + result.z*result.z + result.w*result.w);
+        result.x /= len; result.y /= len; result.z /= len; result.w /= len;
+        return result;
+    }
+    float theta_0 = std::acos(dot);
+    float theta = theta_0 * tt;
+    float sin_theta = std::sin(theta);
+    float sin_theta_0 = std::sin(theta_0);
+    float s0 = std::cos(theta) - dot * sin_theta / sin_theta_0;
+    float s1 = sin_theta / sin_theta_0;
+    result.x = (s0 * q0.x) + (s1 * b.x);
+    result.y = (s0 * q0.y) + (s1 * b.y);
+    result.z = (s0 * q0.z) + (s1 * b.z);
+    result.w = (s0 * q0.w) + (s1 * b.w);
+    return result;
 }
 
-// スカラー倍
-KamataEngine::Vector3 operator*(const KamataEngine::Vector3& v, float s) {
-	Vector3 result;
-
-	result.x = v.x * s;
-	result.y = v.y * s;
-	result.z = v.z * s;
-
-	return result;
+float Math::ToYaw(const Math::Quaternion& q) {
+    return std::atan2(2.0f * (q.w * q.y + q.z * q.x), 1.0f - 2.0f * (q.y * q.y + q.x * q.x));
 }
 
-// スカラー除算
-KamataEngine::Vector3 operator/(const KamataEngine::Vector3& v, float s) {
-
-	Vector3 result;
-
-	result.x = v.x / s;
-	result.y = v.y / s;
-	result.z = v.z / s;
-
-	return result;
-}
-
-// 加算代入
-KamataEngine::Vector3& operator+=(KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
-
-	lhv.x += rhv.x;
-	lhv.y += rhv.y;
-	lhv.z += rhv.z;
-
-	return lhv;
-}
-
-// 減算代入
-KamataEngine::Vector3& operator-=(KamataEngine::Vector3& lhv, const KamataEngine::Vector3& rhv) {
-
-	lhv.x -= rhv.x;
-	lhv.y -= rhv.y;
-	lhv.z -= rhv.z;
-
-	return lhv;
-}
-
-// スカラー倍代入
-KamataEngine::Vector3& operator*=(KamataEngine::Vector3& v, float s) {
-
-	v.x *= s;
-	v.y *= s;
-	v.z *= s;
-
-	return v;
-}
-
-// スカラー除算代入
-KamataEngine::Vector3& operator/=(KamataEngine::Vector3& v, float s) {
-
-	v.x /= s;
-	v.y /= s;
-	v.z /= s;
-
-	return v;
-}
+// Vector operator overloads
+KamataEngine::Vector3 operator+(const KamataEngine::Vector3& a, const KamataEngine::Vector3& b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
+KamataEngine::Vector3 operator-(const KamataEngine::Vector3& a, const KamataEngine::Vector3& b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
+KamataEngine::Vector3 operator*(const KamataEngine::Vector3& v, float s) { return {v.x * s, v.y * s, v.z * s}; }
+KamataEngine::Vector3 operator/(const KamataEngine::Vector3& v, float s) { return {v.x / s, v.y / s, v.z / s}; }
+KamataEngine::Vector3& operator+=(KamataEngine::Vector3& l, const KamataEngine::Vector3& r) { l.x += r.x; l.y += r.y; l.z += r.z; return l; }
+KamataEngine::Vector3& operator-=(KamataEngine::Vector3& l, const KamataEngine::Vector3& r) { l.x -= r.x; l.y -= r.y; l.z -= r.z; return l; }
+KamataEngine::Vector3& operator*=(KamataEngine::Vector3& v, float s) { v.x *= s; v.y *= s; v.z *= s; return v; }
+KamataEngine::Vector3& operator/=(KamataEngine::Vector3& v, float s) { v.x /= s; v.y /= s; v.z /= s; return v; }
